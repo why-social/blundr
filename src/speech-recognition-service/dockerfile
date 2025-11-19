@@ -1,0 +1,31 @@
+# Build stage
+FROM python:3.11-slim AS builder
+
+WORKDIR /src/speech-recognition-service
+
+# Whisper uses ffmpeg to handle various audio and video file formats
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg && rm -rf /var/lib/apt/lists/*
+
+RUN python -m pip install --upgrade pip
+
+RUN pip install --no-cache-dir -U openai-whisper 
+
+COPY . .
+
+# Running stage
+FROM python:3.11-slim
+
+WORKDIR /src/speech-recognition-service
+
+RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \ 
+    && rm -rf /var/lib/apt/lists/*
+
+# Retreive files from builder to minimize the amount of downloading
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages 
+COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /src/speech-recognition-service /src/speech-recognition-service
+
+EXPOSE 8000
+
+CMD [ "python", "speech-recognition.py" ]
