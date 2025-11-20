@@ -1,12 +1,11 @@
-from dataset import Dataset,AudioSample
-from download import download_all
+from dataset.dataset import SpecDataset, AudioSample
 from pathlib import Path
 
 import os
 import re
 
 
-def parse_crema(path, dataset: Dataset):
+def parse_crema(path, dataset: SpecDataset):
     """
     Parses the CREMA dataset into a `Dataset` object.
     """
@@ -149,11 +148,10 @@ def parse_savee(path, dataset):
                 emotion=map[emotion_code]
             ))
 
-def merge_datasets(raw_datasets):
-    merged_dataset = Dataset()
-    parse_tess(raw_datasets['TESS'], merged_dataset)
-    parse_ravdess(raw_datasets['RAVDESS'], merged_dataset)
-    parse_crema(raw_datasets['CREMA'], merged_dataset)
-    parse_savee(raw_datasets['SAVEE'], merged_dataset)
-    return merged_dataset
+def merge_datasets(raw_datasets, dataset):
+    parse_tess(raw_datasets['TESS'], dataset)
+    parse_ravdess(raw_datasets['RAVDESS'], dataset)
+    parse_crema(raw_datasets['CREMA'], dataset)
+    parse_savee(raw_datasets['SAVEE'], dataset)
+    return dataset
 

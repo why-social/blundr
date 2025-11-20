@@ -1,3 +1,4 @@
+import time
 import shutil
 import torch
 import torchaudio
@@ -6,8 +7,11 @@ from typing import List
 from dataclasses import dataclass
 from pathlib import Path
 from tqdm import tqdm
+from torch.utils.data import Dataset, DataLoader
 
-from transformations import standardize_length
+from dataset.transformations import standardize_length
+from dataset.config import DatasetConfig
+
 
 @dataclass
 class AudioSample:
@@ -17,18 +21,15 @@ class AudioSample:
     emotion: str
 
 
-class Dataset:
-    def __init__(self, target_length=300):
-        self.target_length = target_length
+class SpecDataset(Dataset):
+    def __init__(self, config: DatasetConfig):
+        self.config = config
         self.samples: List[AudioSample] = []
+        self.config.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.label_map = {
-            'neutral': 0,
-            'happy': 1,
-            'sad': 2,
-            'anger': 3,
-            'fear': 4,
-            'disgust': 5,
+            'angry': 0, 'disgust': 1, 'fear': 2,
+            'happy': 3, 'neutral': 4, 'sad': 5,
             'surprise': 6
         }
 
@@ -41,21 +42,91 @@ class Dataset:
         return len(self.samples)
 
 
+    def _process_and_cache(self, sample):
+        """The slow path: Load Audio -> Spectrogram -> Save to Disk"""
+        waveform, sample_rate = torchaudio.load(sample.path)
+        waveform = waveform
+
+        # resample if needed
+        if sample_rate != self.config.sample_rate:
+            resampler = torchaudio.transforms.Resample(
+                sample_rate, 
+                self.config.sample_rate,
+            )
+            waveform = resampler(waveform)
+
+        # to mono
+        if waveform.shape[0] > 1:
+            waveform = torch.mean(waveform, dim=0, keepdim=True)
+
+
+        # generate spectrogram
+        mel_transform = torchaudio.transforms.MelSpectrogram(
+            sample_rate=self.config.sample_rate,
+            n_mels=self.config.n_mels,
+            hop_length=self.config.hop_length,
+            n_fft=self.config.n_fft,
+        )
+
+        spec = mel_transform(waveform) # Shape: (1, 128, time)
+
+        db_transform = torchaudio.transforms.AmplitudeToDB()
+        spec = db_transform(spec)
+
+        # save to Disk
+        cache_dir = self.config.cache_dir/sample.emotion
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        torch.save(spec, cache_dir/sample.filename)
+
+        return spec
+
+
     def __getitem__(self, idx):
         assert idx < self.__len__()
 
         sample = self.samples[idx]
 
-        waveform, _ = torchaudio.load(sample.path)
+        cache_path = self.config.cache_dir/sample.emotion/sample.filename
+        if cache_path.exists():
+            # FAST PATH: Load tensor directly
+            try:
+                spec = torch.load(cache_path)
+            except Exception:
+                # Corrupt file? Re-compute.
+                spec = self._process_and_cache(sample)
+        else:
+            # SLOW PATH: Compute and Save
+            spec = self._process_and_cache(sample)
 
-        mel_transform = torchaudio.transforms.MelSpectrogram(sample_rate=16000, n_mels=128)
-        spectrogram = mel_transform(waveform) # Shape: (1, 128, time)
-
-        spectrogram = standardize_length(spectrogram, self.target_length)
+        spec= standardize_length(spec, self.config.target_frames, mode='random')
 
         label_id = self.label_map[sample.emotion]
 
-        return spectrogram, label_id
+        return spec, label_id
+
+
+    def preprocess(self, num_workers=4):
+        """
+        Runs through the entire dataset, runs preprocessing and caches.
+        Uses workers and DataLoader.
+        """
+        # dummy loader just to iterate through data
+        loader = DataLoader(self, batch_size=16, num_workers=num_workers, shuffle=False)
+        
+        # access every sample to trigger the cache logic
+        for _ in tqdm(loader, total=len(loader), desc="Warming cache"):
+            pass
+
+
+    def preprocess_seq(self, rebuild=False):
+        """
+        Runs through the entire dataset, runs preprocessing and caches.
+        Runs sequentially.
+        """
+        for sample in tqdm(self.samples):
+            path = self.config.cache_dir/sample.emotion/sample.filename
+            if rebuild or not path.exists():
+                self._process_and_cache(sample)
 
 
     def dump(self, output_dir: str):
@@ -78,3 +149,4 @@ class Dataset:
 
             dest_file = dest_folder/new_filename
             shutil.copy2(sample.path, dest_file)
+
