@@ -148,3 +148,11 @@ def parse_savee(path, dataset):
                 emotion=map[emotion_code]
             ))
 
+def merge_datasets(raw_datasets):
+    merged_dataset = Dataset()
+    parse_tess(raw_datasets['TESS'], merged_dataset)
+    parse_ravdess(raw_datasets['RAVDESS'], merged_dataset)
+    parse_crema(raw_datasets['CREMA'], merged_dataset)
+    parse_savee(raw_datasets['SAVEE'], merged_dataset)
+    return merged_dataset
+
