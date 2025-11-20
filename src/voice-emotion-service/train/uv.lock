@@ -163,10 +163,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "kagglehub" },
+    { name = "tqdm" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "kagglehub", specifier = ">=0.3.13" }]
+requires-dist = [
+    { name = "kagglehub", specifier = ">=0.3.13" },
+    { name = "tqdm", specifier = ">=4.67.1" },
+]
 
 [[package]]
 name = "urllib3"

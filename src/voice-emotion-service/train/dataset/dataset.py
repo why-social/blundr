@@ -3,6 +3,7 @@ import shutil
 from typing import List
 from dataclasses import dataclass
 from pathlib import Path
+from tqdm import tqdm
 
 @dataclass
 class AudioSample:
@@ -35,7 +36,7 @@ class Dataset:
 
         print(f"Exporting {len(self.samples)} files to {output_dir}...")
 
-        for sample in self.samples:
+        for sample in tqdm(self.samples):
             # Format: {SOURCE}_{ORIGINAL FILENAME}.wav
             new_filename = f"{sample.source_dataset}_{sample.filename}.wav"
 
