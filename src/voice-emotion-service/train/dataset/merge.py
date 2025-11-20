@@ -47,7 +47,7 @@ def parse_ravdess(path, dataset):
 
     map = {
         '01': 'neutral',
-        '02': 'calm',
+        # '02': 'calm',
         '03': 'happy',
         '04': 'sad',
         '05': 'angry',
@@ -66,6 +66,7 @@ def parse_ravdess(path, dataset):
             assert len(parts) == 7
 
             emotion_code = parts[2]
+            if emotion_code == '02': continue # explicitly drop 'calm'
             assert emotion_code in map
 
             dataset.add(AudioSample(
