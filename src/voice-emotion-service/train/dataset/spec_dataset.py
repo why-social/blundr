@@ -10,7 +10,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
 from dataset.transformations import standardize_length
-from dataset.config import DatasetConfig
+from config.dataset_config import DatasetConfig
 
 
 @dataclass

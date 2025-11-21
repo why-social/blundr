@@ -1,4 +1,4 @@
-from dataset.config import DatasetConfig
+from config.dataset_config import DatasetConfig
 from download import download_all
 from dataset import Dataset
 from merge import merge_datasets

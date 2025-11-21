@@ -1,4 +1,3 @@
-import torch
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -10,7 +9,6 @@ class DatasetConfig:
     hop_length: int = 512
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
-    device = "cuda" if torch.cuda.is_available() else "cpu"
 
     @property
     def target_frames(self) -> int:

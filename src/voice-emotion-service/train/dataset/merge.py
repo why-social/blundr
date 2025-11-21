@@ -1,4 +1,4 @@
-from dataset.dataset import SpecDataset, AudioSample
+from dataset.spec_dataset import SpecDataset, AudioSample
 from pathlib import Path
 
 import os
