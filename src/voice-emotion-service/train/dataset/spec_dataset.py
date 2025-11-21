@@ -23,9 +23,9 @@ class AudioSample:
 
 
 class SpecDataset(Dataset):
-    def __init__(self, config: DatasetConfig):
+    def __init__(self,  config: DatasetConfig, samples: List[AudioSample] = []):
         self.config = config
-        self.samples: List[AudioSample] = []
+        self.samples = samples
         self.config.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.label_map = {
@@ -99,18 +99,19 @@ class SpecDataset(Dataset):
 
         spec= standardize_length(spec, self.config.target_frames, mode='random')
 
-        label_id = self.label_map[sample.emotion]
+        label_id = self.label_map.get(sample.emotion)
+        assert label_id is not None
 
         return spec, label_id
 
 
-    def preprocess(self, num_workers=4):
+    def preprocess(self, num_workers=4, batch_size=16):
         """
         Runs through the entire dataset, runs preprocessing and caches.
         Uses workers and DataLoader.
         """
         # dummy loader just to iterate through data
-        loader = DataLoader(self, batch_size=16, num_workers=num_workers, shuffle=False)
+        loader = DataLoader(self, batch_size=batch_size, num_workers=num_workers, shuffle=False)
         
         # access every sample to trigger the cache logic
         for _ in tqdm(loader, total=len(loader), desc="Warming cache"):
