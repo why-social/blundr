@@ -36,6 +36,7 @@ def parse_crema(path, dataset: SpecDataset):
                 filename=base_name,
                 source_dataset="CREMA",
                 emotion=map[emotion_raw],
+                actor=parts[0],
             ))
 
 
@@ -72,7 +73,8 @@ def parse_ravdess(path, dataset):
                 path=Path(root_dir)/file,
                 filename=base_name,
                 source_dataset="RAVDESS",
-                emotion=map[emotion_code]
+                emotion=map[emotion_code],
+                actor=parts[-1],
             ))
 
 
@@ -110,6 +112,7 @@ def parse_tess(path, dataset):
                 filename=base_name,
                 source_dataset="TESS",
                 emotion=map[raw_emotion],
+                actor=parts[0],
             ))
 
 
@@ -135,6 +138,7 @@ def parse_savee(path, dataset):
 
             # 'sa01.wav' -> match group 1 is 'sa'
             match = re.match(r"([a-zA-Z]+)\d+", file)
+            actor_code = os.path.basename(root_dir)
 
             if not match: continue
 
@@ -143,9 +147,10 @@ def parse_savee(path, dataset):
 
             dataset.add(AudioSample(
                 path=Path(root_dir)/file,
-                filename=file.replace('.wav', ''),
+                filename=f"{actor_code}_{file.replace('.wav', '')}",
                 source_dataset="SAVEE",
-                emotion=map[emotion_code]
+                emotion=map[emotion_code],
+                actor=actor_code,
             ))
 
 def merge_datasets(raw_datasets, dataset):

@@ -19,6 +19,7 @@ class AudioSample:
     filename: str
     source_dataset: str
     emotion: str
+    actor: str
 
 
 class SpecDataset(Dataset):
