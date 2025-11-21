@@ -29,7 +29,7 @@ if __name__ == '__main__':
 
     model = CRNNModel(config, dataset.config.n_mels, len(dataset.label_map.keys())).to(config.device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate)
+    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
 
     for epoch in range(config.epochs):
         model.train()

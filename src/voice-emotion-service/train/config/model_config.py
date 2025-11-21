@@ -2,10 +2,11 @@ from dataclasses import dataclass
 
 @dataclass
 class ModelConfig:
-    hidden_size: int = 256
+    hidden_size: int = 128
     learning_rate: float = 0.001
-    epochs: int = 100
+    epochs: int = 50
     batch_size: int = 32
+    weight_decay: float = 1e-4
 
     @property
     def device(self) -> str:
