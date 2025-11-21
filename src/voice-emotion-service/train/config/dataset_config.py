@@ -1,6 +1,14 @@
 from pathlib import Path
 from dataclasses import dataclass
 
+from dataset.transformations import pitch_shift
+
+@dataclass
+class AugmentsConfig:
+    noise_amount: float = 0.005
+    pitch_shift: int = 2
+    stretch_rate: float = 0.85
+
 @dataclass
 class DatasetConfig:
     sample_rate: int = 16000 # Hz
@@ -9,6 +17,8 @@ class DatasetConfig:
     hop_length: int = 512
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
+    raw_data_dir: Path = Path("./raw_datasets")
+
 
     @property
     def target_frames(self) -> int:

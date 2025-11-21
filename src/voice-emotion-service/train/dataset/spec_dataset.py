@@ -46,7 +46,6 @@ class SpecDataset(Dataset):
     def _process_and_cache(self, sample):
         """The slow path: Load Audio -> Spectrogram -> Save to Disk"""
         waveform, sample_rate = torchaudio.load(sample.path)
-        waveform = waveform
 
         # resample if needed
         if sample_rate != self.config.sample_rate:
@@ -112,21 +111,10 @@ class SpecDataset(Dataset):
         """
         # dummy loader just to iterate through data
         loader = DataLoader(self, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-        
+
         # access every sample to trigger the cache logic
         for _ in tqdm(loader, total=len(loader), desc="Warming cache"):
             pass
-
-
-    def preprocess_seq(self, rebuild=False):
-        """
-        Runs through the entire dataset, runs preprocessing and caches.
-        Runs sequentially.
-        """
-        for sample in tqdm(self.samples):
-            path = self.config.cache_dir/sample.emotion/sample.filename
-            if rebuild or not path.exists():
-                self._process_and_cache(sample)
 
 
     def dump(self, output_dir: str):

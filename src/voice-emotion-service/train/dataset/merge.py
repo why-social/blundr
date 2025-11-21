@@ -153,10 +153,11 @@ def parse_savee(path, dataset):
                 actor=actor_code,
             ))
 
-def merge_datasets(raw_datasets, dataset):
+def merge_datasets(raw_datasets, dataset: SpecDataset, augment=True):
     parse_tess(raw_datasets['TESS'], dataset)
     parse_ravdess(raw_datasets['RAVDESS'], dataset)
     parse_crema(raw_datasets['CREMA'], dataset)
     parse_savee(raw_datasets['SAVEE'], dataset)
+
     return dataset
 

@@ -1,29 +1,49 @@
 import kagglehub
 import os
+import subprocess
 from pathlib import Path
 
-def download_crema():
-    path = kagglehub.dataset_download("ejlok1/cremad")
-    return Path(path)
+def _dataset_already_downloaded(out_dir: Path) -> bool:
+    """Return True if out_dir already has wav files."""
+    if not out_dir.exists():
+        return False
 
-def download_ravdess():
-    path = kagglehub.dataset_download("uwrfkaggler/ravdess-emotional-speech-audio")
-    return Path(path)
+    for _, _, files in os.walk(out_dir):
+        if any(f.lower().endswith(".wav") for f in files):
+            return True
 
-def download_savee():
-    path = kagglehub.dataset_download("barelydedicated/savee-database")
-    return Path(path)
+    return False
 
-def download_tess():
-    path = kagglehub.dataset_download("ejlok1/toronto-emotional-speech-set-tess")
-    return Path(path)
+def _download_dataset(name, path, force):
+    print(f"Downloading {name}...")
+    out_dir = Path(path)/name.replace('/', '_')
+    out_dir.mkdir(parents=True, exist_ok=True)
 
-def download_all():
+    if _dataset_already_downloaded(out_dir):
+        if not force: 
+            print("Dataset already present. Skipping.")
+            return out_dir
+
+    url = f"https://www.kaggle.com/api/v1/datasets/download/{name}"
+    zip_path = out_dir/"dataset.zip"
+
+    subprocess.run([
+        "curl", "-L",
+        "-o", str(zip_path),
+        url
+    ], check=True)
+
+    subprocess.run(["unzip", "-o", str(zip_path), "-d", str(out_dir)], check=True)
+    subprocess.run(["rm", "-fr", str(zip_path)], check=True)
+
+    return out_dir
+
+def download_datasets(path, force=False):
     datasets = {
-        "CREMA": download_crema(),
-        "RAVDESS": download_ravdess(),
-        "SAVEE": download_savee(),
-        "TESS": download_tess(),
+        "CREMA": _download_dataset("ejlok1/cremad", path, force),
+        "RAVDESS": _download_dataset("uwrfkaggler/ravdess-emotional-speech-audio", path, force),
+        "SAVEE": _download_dataset("barelydedicated/savee-database", path, force),
+        "TESS": _download_dataset("ejlok1/toronto-emotional-speech-set-tess", path, force),
     }
 
     raw_files_set = set()

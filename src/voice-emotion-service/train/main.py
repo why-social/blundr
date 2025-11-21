@@ -1,19 +1,24 @@
+from dataset.augment import augment_dataset
 import torch
 import torch.nn as nn
 
 from config.model_config import ModelConfig
 from dataset.spec_dataset import SpecDataset
-from config.dataset_config import DatasetConfig
-from dataset.download import download_all
+from dataset.augment import augment_dataset
+from config.dataset_config import AugmentsConfig, DatasetConfig
+from dataset.download import download_datasets
 from dataset.merge import merge_datasets
 from model.dataloaders import create_dataloaders
 from model.crnn_model import CRNNModel
 
 
 if __name__ == '__main__':
-    raw_datasets = download_all()
+    dataset_config = DatasetConfig()
+    raw_datasets = download_datasets(dataset_config.raw_data_dir)
 
-    dataset = SpecDataset(DatasetConfig())
+    augment_dataset(raw_datasets, AugmentsConfig())
+
+    dataset = SpecDataset(dataset_config)
     merged_dataset = merge_datasets(raw_datasets, dataset)
     dataset.preprocess(num_workers=8)
 
