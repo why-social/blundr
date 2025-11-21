@@ -82,8 +82,6 @@ class SpecDataset(Dataset):
 
 
     def __getitem__(self, idx):
-        assert idx < self.__len__()
-
         sample = self.samples[idx]
 
         cache_path = self.config.cache_dir/sample.emotion/sample.filename
