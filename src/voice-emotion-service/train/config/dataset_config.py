@@ -5,9 +5,13 @@ from dataset.transformations import pitch_shift
 
 @dataclass
 class AugmentsConfig:
-    noise_amount: float = 0.005
-    pitch_shift: int = 2
-    stretch_rate: float = 0.85
+    noise_amount: float = 0.01 
+    pitch_shift: int = 0
+    stretch_rate: float = 0
+
+    @property
+    def enabled(self) -> bool:
+        return self.noise_amount != 0 and self.pitch_shift != 0 and self.stretch_rate != 0
 
 @dataclass
 class DatasetConfig:

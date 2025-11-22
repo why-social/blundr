@@ -25,10 +25,11 @@ def parse_crema(path, dataset: SpecDataset):
             if not file.endswith('.wav'): continue
 
             base_name = file.lower().replace('.wav', '')
-            parts = base_name.split('_')
-            assert len(parts) == 4
+            pattern = r"(\d+)_[a-z]+_([a-z]{3})_[a-z]+(?:_(noise|pitch|stretch))?$"
+            match = re.match(pattern, base_name)
+            assert match is not None, f"Could not parse: {base_name}"
 
-            emotion_raw = parts[2]
+            emotion_raw = match.group(2)
             assert emotion_raw in map
 
             dataset.add(AudioSample(
@@ -36,7 +37,7 @@ def parse_crema(path, dataset: SpecDataset):
                 filename=base_name,
                 source_dataset="CREMA",
                 emotion=map[emotion_raw],
-                actor=parts[0],
+                actor=match.group(1),
             ))
 
 
@@ -63,7 +64,6 @@ def parse_ravdess(path, dataset):
 
             base_name = file.lower().replace('.wav', '')
             parts = base_name.split('-')
-            assert len(parts) == 7
 
             emotion_code = parts[2]
             if emotion_code == '02': continue # explicitly drop 'calm'
@@ -98,13 +98,11 @@ def parse_tess(path, dataset):
             if not file.endswith('.wav'): continue
 
             base_name = file.lower().replace('.wav', '')
+            pattern = "(OAF|YAF)_\\w+_(\\w+)(?:_noise|_pitch|_stretch)?"
+            match = re.match(pattern, base_name)
+            assert match is not None
 
-            parts = base_name.split('_')
-            assert len(parts) == 3
-
-            raw_emotion = parts[-1]
-
-            # Assert it exists to satisfy type checker
+            raw_emotion = match.group(2)
             assert raw_emotion in map
 
             dataset.add(AudioSample(
@@ -112,7 +110,7 @@ def parse_tess(path, dataset):
                 filename=base_name,
                 source_dataset="TESS",
                 emotion=map[raw_emotion],
-                actor=parts[0],
+                actor=match.group(1),
             ))
 
 
@@ -153,11 +151,11 @@ def parse_savee(path, dataset):
                 actor=actor_code,
             ))
 
-def merge_datasets(raw_datasets, dataset: SpecDataset, augment=True):
-    parse_tess(raw_datasets['TESS'], dataset)
-    parse_ravdess(raw_datasets['RAVDESS'], dataset)
+def merge_datasets(raw_datasets, dataset: SpecDataset):
     parse_crema(raw_datasets['CREMA'], dataset)
+    parse_ravdess(raw_datasets['RAVDESS'], dataset)
     parse_savee(raw_datasets['SAVEE'], dataset)
+    parse_tess(raw_datasets['TESS'], dataset)
 
     return dataset
 

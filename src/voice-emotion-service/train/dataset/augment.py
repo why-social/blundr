@@ -7,7 +7,11 @@ from tqdm import tqdm
 from config.dataset_config import AugmentsConfig
 from dataset import transformations
 
-def augment_dataset(datasets, config: AugmentsConfig):
+def augment_dataset(datasets, config: AugmentsConfig) -> None:
+    if not config.enabled:
+        print("No enabled augmentations in config. Skipping")
+        return
+
     for dataset_name, path in datasets.items():
         for root, _, files in os.walk(path):
             if not any(f.lower().endswith(".wav") for f in files): continue
@@ -20,27 +24,27 @@ def augment_dataset(datasets, config: AugmentsConfig):
                 orig_waveform, sample_rate = torchaudio.load(root/file)
                 base_name = file.replace('.wav', '')
 
-                if amount := config.noise_amount != 0:
+                if config.noise_amount != 0:
                     aug_file = root/f"{base_name}_noise.wav"
                     if not aug_file.exists():
-                        waveform = transformations.add_white_noise(orig_waveform, amount)
+                        waveform = transformations.add_white_noise(orig_waveform, config.noise_amount)
                         torchaudio.save(aug_file, waveform, sample_rate)
 
-                if n_steps := config.pitch_shift != 0:
+                if config.pitch_shift != 0:
                     aug_file = root/f"{base_name}_pitch.wav"
                     if not aug_file.exists():
                         waveform = orig_waveform.detach().cpu().numpy()
-                        waveform = transformations.pitch_shift(waveform, sample_rate, n_steps)
+                        waveform = transformations.pitch_shift(waveform, sample_rate, config.pitch_shift)
                         if waveform.ndim == 1:
                             waveform = waveform[None, :]
                         waveform = torch.from_numpy(waveform)
                         torchaudio.save(aug_file, waveform, sample_rate)
 
-                if rate := config.stretch_rate != 0:
+                if config.stretch_rate != 0:
                     aug_file = root/f"{base_name}_stretch.wav"
                     if not aug_file.exists():
                         waveform = orig_waveform.detach().cpu().numpy()
-                        waveform = transformations.time_stretch(waveform, rate)
+                        waveform = transformations.time_stretch(waveform, config.stretch_rate)
                         if waveform.ndim == 1:
                             waveform = waveform[None, :]
                         waveform = torch.from_numpy(waveform)

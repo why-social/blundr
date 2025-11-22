@@ -37,9 +37,8 @@ def add_white_noise(waveform, noise_level=0.005):
         print(f"ERROR: add_white_noise(): noise_level must be > 0.0. Skipping.")
         return
 
-    noise = randint(len(waveform))
-    augmented = waveform + noise_level * noise
-    return augmented
+    noise = np.random.randn(*waveform.shape)  
+    return waveform + noise_level * noise
 
 
 def time_stretch(waveform, rate=0.8):
