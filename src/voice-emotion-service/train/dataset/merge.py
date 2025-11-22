@@ -30,7 +30,7 @@ def parse_crema(path, dataset: SpecDataset):
             assert match is not None, f"Could not parse: {base_name}"
 
             emotion_raw = match.group(2)
-            assert emotion_raw in map
+            assert emotion_raw in map, f"Unexpected emotion code {emotion_raw} for file {file}"
 
             dataset.add(AudioSample(
                 path=Path(root_dir)/file,
@@ -67,14 +67,14 @@ def parse_ravdess(path, dataset):
 
             emotion_code = parts[2]
             if emotion_code == '02': continue # explicitly drop 'calm'
-            assert emotion_code in map
+            assert emotion_code in map, f"Unexpected emotion code {emotion_code} for file {file}"
 
             dataset.add(AudioSample(
                 path=Path(root_dir)/file,
                 filename=base_name,
                 source_dataset="RAVDESS",
                 emotion=map[emotion_code],
-                actor=parts[-1],
+                actor=parts[-1].split('_')[0],
             ))
 
 
@@ -98,12 +98,12 @@ def parse_tess(path, dataset):
             if not file.endswith('.wav'): continue
 
             base_name = file.lower().replace('.wav', '')
-            pattern = r"(\w+)_\w+_(\w+)(?:_noise|_pitch|_stretch)?"
+            pattern = r"(\w{3})_\S+_(\S+)(?:_noise|_pitch|_stretch)?"
             match = re.match(pattern, base_name)
             assert match is not None, f"Could not parse: {base_name}"
 
             raw_emotion = match.group(2)
-            assert raw_emotion in map
+            assert raw_emotion in map, f"Unexpected emotion code {raw_emotion} for file {base_name}"
 
             dataset.add(AudioSample(
                 path=Path(root_dir)/file,
@@ -138,10 +138,10 @@ def parse_savee(path, dataset):
             match = re.match(r"([a-zA-Z]+)\d+", file)
             actor_code = os.path.basename(root_dir)
 
-            if not match: continue
+            assert match is not None, f"Could not parse {file}"
 
             emotion_code = match.group(1)
-            assert emotion_code in map
+            assert emotion_code in map, f"Unexpected emotion code {emotion_code} for file {file}"
 
             dataset.add(AudioSample(
                 path=Path(root_dir)/file,
