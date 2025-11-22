@@ -18,8 +18,13 @@ def augment_dataset(datasets, config: AugmentsConfig) -> None:
 
             for file in tqdm(files, desc=f"Augmenting dataset {dataset_name} ({root})"):
                 if not file.lower().endswith('.wav'): continue
+
                 root = Path(root)
                 base_name = file.replace('.wav', '')
+
+                if base_name.endswith('_pitch')\
+                    or base_name.endswith('_noise')\
+                    or base_name.endswith('_stretch'): continue
 
                 aug_targets = []
                 if config.noise_amount != 0:
