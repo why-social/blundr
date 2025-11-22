@@ -113,7 +113,7 @@ class SpecDataset(Dataset):
         loader = DataLoader(self, batch_size=batch_size, num_workers=num_workers, shuffle=False)
 
         # access every sample to trigger the cache logic
-        for _ in tqdm(loader, total=len(loader), desc="Warming cache"):
+        for _ in tqdm(loader, total=len(loader), desc="Warming cache (and your computer)"):
             pass
 
 
