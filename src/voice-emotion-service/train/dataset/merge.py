@@ -98,9 +98,9 @@ def parse_tess(path, dataset):
             if not file.endswith('.wav'): continue
 
             base_name = file.lower().replace('.wav', '')
-            pattern = "(OAF|YAF)_\\w+_(\\w+)(?:_noise|_pitch|_stretch)?"
+            pattern = r"(\w+)_\w+_(\w+)(?:_noise|_pitch|_stretch)?"
             match = re.match(pattern, base_name)
-            assert match is not None
+            assert match is not None, f"Could not parse: {base_name}"
 
             raw_emotion = match.group(2)
             assert raw_emotion in map
