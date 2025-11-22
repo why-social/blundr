@@ -98,7 +98,7 @@ def parse_tess(path, dataset):
             if not file.endswith('.wav'): continue
 
             base_name = file.lower().replace('.wav', '')
-            pattern = r"(\w{3})_\S+_(\S+)(?:_noise|_pitch|_stretch)?"
+            pattern = r"([a-z]+)_[a-z]+_([a-z]+)(?:_noise|_pitch|_stretch)?"
             match = re.match(pattern, base_name)
             assert match is not None, f"Could not parse: {base_name}"
 

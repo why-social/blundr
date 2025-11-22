@@ -6,8 +6,8 @@ from dataset.transformations import pitch_shift
 @dataclass
 class AugmentsConfig:
     noise_amount: float = 0.01
-    pitch_shift: int = 0
-    stretch_rate: float = 0
+    pitch_shift: int = 2
+    stretch_rate: float = 0.8
 
     @property
     def enabled(self) -> bool:
@@ -21,7 +21,7 @@ class DatasetConfig:
     hop_length: int = 512
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
-    raw_data_dir: Path = Path("./raw_datasets")
+    raw_data_dir: Path = Path("./.raw_datasets")
 
 
     @property
