@@ -8,7 +8,7 @@ from config.dataset_config import AugmentsConfig
 from dataset import transformations
 
 def augment_dataset(datasets, config: AugmentsConfig) -> None:
-    if not config.enabled:
+    if not config.dataset_aug_enabled:
         print("No enabled augmentations in config. Skipping")
         return
 

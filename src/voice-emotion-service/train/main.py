@@ -10,41 +10,42 @@ from dataset.merge import merge_datasets
 from model.dataloaders import create_dataloaders
 from model.crnn_model import CRNNModel
 
+DATASET_CONFIG = DatasetConfig()
+AUGMENTS_CONFIG = AugmentsConfig()
+MODEL_CONFIG = ModelConfig()
 
 if __name__ == '__main__':
-    dataset_config = DatasetConfig()
-    raw_datasets = download_datasets(dataset_config.raw_data_dir)
+    raw_datasets = download_datasets(DATASET_CONFIG.raw_data_dir)
 
-    augment_dataset(raw_datasets, AugmentsConfig())
+    augment_dataset(raw_datasets, AUGMENTS_CONFIG)
 
-    dataset = SpecDataset(dataset_config)
+    dataset = SpecDataset(DATASET_CONFIG, AUGMENTS_CONFIG, is_train=True)
     merged_dataset = merge_datasets(raw_datasets, dataset)
-    dataset.preprocess(num_workers=8)
+    dataset.preprocess(num_workers=10, batch_size=24)
 
-    config = ModelConfig()
-    train_loader, val_loader, test_loader = create_dataloaders(dataset, config)
+    train_loader, val_loader, test_loader = create_dataloaders(dataset, MODEL_CONFIG, AUGMENTS_CONFIG)
 
     train_labels = [s.emotion for s in train_loader.dataset.samples]
     class_counts = [train_labels.count(k) for k in dataset.label_map.keys()]
     total_samples = sum(class_counts)
     weights = [total_samples / (len(class_counts) * c) if c > 0 else 0 for c in class_counts]
-    class_weights = torch.FloatTensor(weights).to(config.device)
+    class_weights = torch.FloatTensor(weights).to(MODEL_CONFIG.device)
     print(f"Class Weights: {weights}")
 
-    model = CRNNModel(config, dataset.config.n_mels, len(dataset.label_map.keys())).to(config.device)
+    model = CRNNModel(MODEL_CONFIG, dataset.config.n_mels, len(dataset.label_map.keys())).to(MODEL_CONFIG.device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
-    optimizer = torch.optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=MODEL_CONFIG.learning_rate, weight_decay=MODEL_CONFIG.weight_decay)
 
-    for epoch in range(config.epochs):
+    for epoch in range(MODEL_CONFIG.epochs):
         model.train()
         running_loss = 0.0
         correct = 0
         total = 0
 
-        print(f"\nEpoch {epoch+1}/{config.epochs}")
+        print(f"\nEpoch {epoch+1}/{MODEL_CONFIG.epochs}")
 
         for inputs, labels in train_loader:
-            inputs, labels = inputs.to(config.device), labels.to(config.device)
+            inputs, labels = inputs.to(MODEL_CONFIG.device), labels.to(MODEL_CONFIG.device)
 
             optimizer.zero_grad()
 
@@ -68,7 +69,7 @@ if __name__ == '__main__':
         val_total = 0
         with torch.no_grad():
             for inputs, labels in val_loader:
-                inputs, labels = inputs.to(config.device), labels.to(config.device)
+                inputs, labels = inputs.to(MODEL_CONFIG.device), labels.to(MODEL_CONFIG.device)
                 outputs = model(inputs)
                 _, predicted = torch.max(outputs.data, 1)
                 val_total += labels.size(0)

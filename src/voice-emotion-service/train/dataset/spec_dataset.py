@@ -1,6 +1,7 @@
 import shutil
 import torch
 import torchaudio
+import torchaudio.transforms as T
 
 from typing import List
 from dataclasses import dataclass
@@ -9,7 +10,7 @@ from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
 from dataset.transformations import standardize_length
-from config.dataset_config import DatasetConfig
+from config.dataset_config import AugmentsConfig, DatasetConfig
 
 
 @dataclass
@@ -22,9 +23,18 @@ class AudioSample:
 
 
 class SpecDataset(Dataset):
-    def __init__(self,  config: DatasetConfig, samples: List[AudioSample] = []):
-        self.config = config
+    def __init__(
+        self,
+        data_config: DatasetConfig,
+        aug_config: AugmentsConfig,
+        samples: List[AudioSample] = [],
+        is_train: bool = False,
+    ):
+        self.config = data_config
+        self.aug_config = aug_config
         self.samples = samples
+        self.is_train = is_train
+
         self.config.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.label_map = {
@@ -32,6 +42,11 @@ class SpecDataset(Dataset):
             'happy': 3, 'neutral': 4, 'sad': 5,
             'surprise': 6
         }
+
+        # prepare transformations if enabled
+        if self.aug_config.spec_aug_enabled:
+            self.freq_mask = T.FrequencyMasking(freq_mask_param=self.aug_config.freq_mask_param)
+            self.time_mask = T.TimeMasking(time_mask_param=self.aug_config.time_mask_param)
 
 
     def add(self, sample: AudioSample):
@@ -95,7 +110,11 @@ class SpecDataset(Dataset):
             # SLOW PATH: Compute and Save
             spec = self._process_and_cache(sample)
 
-        spec= standardize_length(spec, self.config.target_frames, mode='random')
+        spec = standardize_length(spec, self.config.target_frames, mode='random')
+
+        if self.is_train and self.aug_config.spec_aug_enabled:
+            spec = self.freq_mask(spec)
+            spec = self.time_mask(spec)
 
         label_id = self.label_map.get(sample.emotion)
         assert label_id is not None

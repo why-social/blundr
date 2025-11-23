@@ -1,17 +1,21 @@
 from pathlib import Path
 from dataclasses import dataclass
 
-from dataset.transformations import pitch_shift
-
 @dataclass
 class AugmentsConfig:
+    # Data prep (dataset preprocessing stage)
     noise_amount: float = 0.01
     pitch_shift: int = 2
     stretch_rate: float = 0.8
 
-    @property
-    def enabled(self) -> bool:
-        return self.noise_amount != 0.0 or self.pitch_shift != 0 or self.stretch_rate != 0
+    # Training (__getitem__ stage)
+    freq_mask_param: int = 15  # Max vertical bins to mask in spectrogram (out of 128)
+    time_mask_param: int = 35  # Max time frames to mask in spectrogram
+
+    # Toggles
+    dataset_aug_enabled: bool = True
+    spec_aug_enabled: bool = True
+
 
 @dataclass
 class DatasetConfig:
@@ -22,7 +26,6 @@ class DatasetConfig:
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
     raw_data_dir: Path = Path("./.raw_datasets")
-
 
     @property
     def target_frames(self) -> int:
