@@ -31,20 +31,14 @@ class SpecDataset(Dataset):
         samples: List[AudioSample] = [],
         is_train: bool = False,
     ):
-        self.config = data_config
+        self.data_config = data_config
         self.aug_config = aug_config
         self.samples = samples
         self.is_train = is_train
 
-        self.config.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.data_config.cache_dir.mkdir(parents=True, exist_ok=True)
 
         self.processor = AudioProcessor(data_config)
-
-        self.label_map = {
-            'angry': 0, 'disgust': 1, 'fear': 2,
-            'happy': 3, 'neutral': 4, 'sad': 5,
-            # 'surprise': 6
-        }
 
         # prepare transformations if enabled
         if self.aug_config.spec_aug_enabled:
@@ -64,34 +58,10 @@ class SpecDataset(Dataset):
         """The slow path: Load Audio -> Spectrogram -> Save to Disk"""
         waveform, sample_rate = torchaudio.load(sample.path)
 
-        # resample if needed
-        if sample_rate != self.config.sample_rate:
-            resampler = torchaudio.transforms.Resample(
-                sample_rate, 
-                self.config.sample_rate,
-            )
-            waveform = resampler(waveform)
-
-        # to mono
-        if waveform.shape[0] > 1:
-            waveform = torch.mean(waveform, dim=0, keepdim=True)
-
-
-        # generate spectrogram
-        mel_transform = torchaudio.transforms.MelSpectrogram(
-            sample_rate=self.config.sample_rate,
-            n_mels=self.config.n_mels,
-            hop_length=self.config.hop_length,
-            n_fft=self.config.n_fft,
-        )
-
-        spec = mel_transform(waveform) # Shape: (1, 128, time)
-
-        db_transform = torchaudio.transforms.AmplitudeToDB()
-        spec = db_transform(spec)
+        spec = self.processor.waveform_to_spec(waveform, sample_rate)
 
         # save to Disk
-        cache_dir = self.config.cache_dir/sample.emotion
+        cache_dir = self.data_config.cache_dir/sample.emotion
         cache_dir.mkdir(parents=True, exist_ok=True)
         torch.save(spec, cache_dir/sample.filename)
 
@@ -101,7 +71,7 @@ class SpecDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
 
-        cache_path = self.config.cache_dir/sample.emotion/sample.filename
+        cache_path = self.data_config.cache_dir/sample.emotion/sample.filename
         if cache_path.exists():
             # FAST PATH: Load tensor directly
             try:
@@ -113,13 +83,13 @@ class SpecDataset(Dataset):
             # SLOW PATH: Compute and Save
             spec = self._process_and_cache(sample)
 
-        spec = standardize_length(spec, self.config.target_frames, mode='random')
+        spec = standardize_length(spec, self.data_config.target_frames, mode='random')
 
         if self.is_train and self.aug_config.spec_aug_enabled:
             spec = self.freq_mask(spec)
             spec = self.time_mask(spec)
 
-        label_id = self.label_map.get(sample.emotion)
+        label_id = self.data_config.label_map.get(sample.emotion)
         assert label_id is not None
 
         return spec, label_id

@@ -26,6 +26,16 @@ class DatasetConfig:
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
     raw_data_dir: Path = Path("./.raw_datasets")
+    label_map = {
+        'angry': 0, 'disgust': 1, 'fear': 2,
+        'happy': 3, 'neutral': 4, 'sad': 5,
+        # 'surprise': 6
+    }
+    label_map_reverse = {
+        0: 'angry', 1: 'disgust', 2:'fear',
+        3: 'happy', 4: 'neutral', 5:'sad',
+        # 'surprise': 6
+    }
 
     @property
     def target_frames(self) -> int:

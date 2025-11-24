@@ -3,7 +3,7 @@ from pathlib import Path
 
 @dataclass
 class ModelConfig:
-    hidden_size: int = 128
+    hidden_size: int = 96
     learning_rate: float = 0.001
     epochs: int = 50
     batch_size: int = 32

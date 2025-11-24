@@ -12,11 +12,7 @@ from common.model.crnn_model import CRNNModel
 
 DATASET_CONFIG = DatasetConfig()
 AUGMENTS_CONFIG = AugmentsConfig()
-MODEL_CONFIG = ModelConfig(
-    epochs=50,
-    hidden_size=96,
-    learning_rate=0.001,
-)
+MODEL_CONFIG = ModelConfig()
 
 if __name__ == '__main__':
     raw_datasets = download_datasets(DATASET_CONFIG.raw_data_dir)
