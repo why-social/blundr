@@ -12,7 +12,11 @@ from model.crnn_model import CRNNModel
 
 DATASET_CONFIG = DatasetConfig()
 AUGMENTS_CONFIG = AugmentsConfig()
-MODEL_CONFIG = ModelConfig()
+MODEL_CONFIG = ModelConfig(
+    epochs=20,
+    hidden_size=96,
+    learning_rate=0.001,
+)
 
 if __name__ == '__main__':
     raw_datasets = download_datasets(DATASET_CONFIG.raw_data_dir)
@@ -77,5 +81,22 @@ if __name__ == '__main__':
 
         val_acc = 100 * val_correct / val_total
         print(f"Validation Acc: {val_acc:.2f}%")
+
+
+    model.eval()
+    test_loss = 0
+    val_total = 0
+    val_correct = 0
+    with torch.no_grad():
+        for inputs, labels in val_loader:
+            inputs, labels = inputs.to(MODEL_CONFIG.device), labels.to(MODEL_CONFIG.device)
+            outputs = model(inputs)
+            _, predicted = torch.max(outputs.data, 1)
+            val_correct += (predicted == labels).sum().item()
+            val_total += labels.size(0)
+
+    print('\nTest set: Accuracy: {}/{} ({:.0f}%)\n'.format(
+         val_correct, len(test_loader.dataset),
+        100. * val_correct / len(test_loader.dataset)))
 
     print("Training Complete. Goodbye!")
