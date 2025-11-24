@@ -13,7 +13,7 @@ from model.crnn_model import CRNNModel
 DATASET_CONFIG = DatasetConfig()
 AUGMENTS_CONFIG = AugmentsConfig()
 MODEL_CONFIG = ModelConfig(
-    epochs=20,
+    epochs=50,
     hidden_size=96,
     learning_rate=0.001,
 )
@@ -39,6 +39,11 @@ if __name__ == '__main__':
     model = CRNNModel(MODEL_CONFIG, dataset.config.n_mels, len(dataset.label_map.keys())).to(MODEL_CONFIG.device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=MODEL_CONFIG.learning_rate, weight_decay=MODEL_CONFIG.weight_decay)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=3
+    )
+
+    best_val_acc = 0.0
 
     for epoch in range(MODEL_CONFIG.epochs):
         model.train()
@@ -82,13 +87,23 @@ if __name__ == '__main__':
         val_acc = 100 * val_correct / val_total
         print(f"Validation Acc: {val_acc:.2f}%")
 
+        scheduler.step(val_acc)
 
+        if val_acc > best_val_acc:
+            best_val_acc = val_acc
+            print("New Best.")
+            if val_acc >= MODEL_CONFIG.save_thresh:
+                torch.save(model.state_dict(), MODEL_CONFIG.out_path)
+                print("Saved.")
+
+
+    model.load_state_dict(torch.load(MODEL_CONFIG.out_path))
     model.eval()
     test_loss = 0
     val_total = 0
     val_correct = 0
     with torch.no_grad():
-        for inputs, labels in val_loader:
+        for inputs, labels in test_loader:
             inputs, labels = inputs.to(MODEL_CONFIG.device), labels.to(MODEL_CONFIG.device)
             outputs = model(inputs)
             _, predicted = torch.max(outputs.data, 1)

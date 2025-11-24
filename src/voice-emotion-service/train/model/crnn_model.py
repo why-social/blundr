@@ -7,6 +7,8 @@ class CRNNModel(nn.Module):
     def __init__(self, config: ModelConfig, n_mels: int, num_classes: int):
         super(CRNNModel, self).__init__()
 
+        config.out_path.parent.mkdir(parents=True, exist_ok=True)
+
         # CNN Block
         self.conv1 = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),

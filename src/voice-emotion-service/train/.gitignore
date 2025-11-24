@@ -1,3 +1,4 @@
 data/
 .cache/
 .raw_datasets/
+.backup/
