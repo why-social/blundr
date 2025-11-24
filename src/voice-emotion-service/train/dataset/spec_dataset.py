@@ -9,8 +9,9 @@ from pathlib import Path
 from tqdm import tqdm
 from torch.utils.data import Dataset, DataLoader
 
-from dataset.transformations import standardize_length
-from config.dataset_config import AugmentsConfig, DatasetConfig
+from common.utils.transformations import standardize_length
+from common.config.dataset_config import AugmentsConfig, DatasetConfig
+from common.utils.audio_processing import AudioProcessor
 
 
 @dataclass
@@ -37,10 +38,12 @@ class SpecDataset(Dataset):
 
         self.config.cache_dir.mkdir(parents=True, exist_ok=True)
 
+        self.processor = AudioProcessor(data_config)
+
         self.label_map = {
             'angry': 0, 'disgust': 1, 'fear': 2,
             'happy': 3, 'neutral': 4, 'sad': 5,
-            'surprise': 6
+            # 'surprise': 6
         }
 
         # prepare transformations if enabled

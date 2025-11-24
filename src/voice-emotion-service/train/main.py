@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 
-from config.model_config import ModelConfig
+from common.config.model_config import ModelConfig
 from dataset.spec_dataset import SpecDataset
 from dataset.augment import augment_dataset
-from config.dataset_config import AugmentsConfig, DatasetConfig
+from common.config.dataset_config import AugmentsConfig, DatasetConfig
 from dataset.download import download_datasets
 from dataset.merge import merge_datasets
-from model.dataloaders import create_dataloaders
-from model.crnn_model import CRNNModel
+from dataset.dataloaders import create_dataloaders
+from common.model.crnn_model import CRNNModel
 
 DATASET_CONFIG = DatasetConfig()
 AUGMENTS_CONFIG = AugmentsConfig()

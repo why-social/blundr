@@ -4,8 +4,8 @@ import torchaudio
 from pathlib import Path
 from tqdm import tqdm
 
-from config.dataset_config import AugmentsConfig
-from dataset import transformations
+from common.config.dataset_config import AugmentsConfig
+from common.utils import transformations
 
 def augment_dataset(datasets, config: AugmentsConfig) -> None:
     if not config.dataset_aug_enabled:

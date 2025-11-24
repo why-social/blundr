@@ -1,4 +1,4 @@
-from config.model_config import ModelConfig
+from common.config.model_config import ModelConfig
 import torch
 import torch.nn as nn
 import torch.nn.functional as F

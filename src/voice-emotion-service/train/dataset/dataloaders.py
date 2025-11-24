@@ -1,8 +1,8 @@
 from sklearn.model_selection import train_test_split
 from torch.utils.data import DataLoader
 
-from config.dataset_config import AugmentsConfig
-from config.model_config import ModelConfig
+from common.config.dataset_config import AugmentsConfig
+from common.config.model_config import ModelConfig
 from dataset.spec_dataset import SpecDataset
 
 

@@ -1,10 +1,11 @@
 [project]
-name = "train"
+name = "ve-train"
 version = "0.1.0"
 description = "Train VE model"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "ve-common",
     "kagglehub>=0.3.13",
     "librosa>=0.11.0",
     "numpy>=2.3.5",
@@ -14,3 +15,6 @@ dependencies = [
     "torchcodec>=0.8.1",
     "tqdm>=4.67.1",
 ]
+
+[tool.uv.sources]
+ve-common = { path="../common", editable=true }
