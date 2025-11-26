@@ -1,5 +1,3 @@
-let ws: WebSocket;
-
 export type WSHandler = {
   onConnected: (clientId: string) => Promise<void>;
   onMatch: (clientId: string, sessionId: string) => Promise<void>;
@@ -13,7 +11,7 @@ export function init(handler: WSHandler) {
     process.exit(1);
   }
 
-  ws = new WebSocket(WS_URL);
+  const ws = new WebSocket(WS_URL);
 
   ws.onmessage = async (event) => {
     const message = JSON.parse(event.data);
@@ -31,6 +29,7 @@ export function init(handler: WSHandler) {
 
         break;
       }
+
       case "match": {
         await handler.onMatch(message.data.clientId, message.data.sessionId);
         ws.close();
@@ -40,7 +39,14 @@ export function init(handler: WSHandler) {
     }
   };
 
-  return ws;
-}
+  return () => {
+    ws.onmessage = null;
 
-export const send = (message: string) => ws.send(JSON.stringify(message));
+    if (
+      ws.readyState === WebSocket.OPEN ||
+      ws.readyState === WebSocket.CONNECTING
+    ) {
+      ws.close();
+    }
+  };
+}

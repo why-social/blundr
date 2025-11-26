@@ -37,7 +37,7 @@ export default function Chat() {
     let receiveTransport: Transport<AppData> | null = null;
 
     // TODO: error handling
-    const ws = initRoomHandler({
+    const cleanupRoom = initRoomHandler({
       onConnected: async (id: string) => {
         clientId.current = id;
 
@@ -142,42 +142,48 @@ export default function Chat() {
     });
 
     return () => {
-      if (
-        ws != null &&
-        (ws.readyState === ws.CONNECTING || ws.readyState === ws.OPEN)
-      ) {
-        ws.close();
-      }
-
       stream.getTracks().forEach((track) => track.stop());
 
       sendTransport?.close();
       receiveTransport?.close();
+
+      cleanupRoom();
     };
   }, []);
 
   // setup hook
-  const hasRun = useRef(false);
+  const hasRealMounted = useRef(false);
 
   useEffect(() => {
-    if (hasRun.current) {
+    // ignore the first development mount (StrictMode double mount)
+    // this breaks the web socket logic otherwise
+    if (process.env.NODE_ENV === "development" && !hasRealMounted.current) {
+      hasRealMounted.current = true;
+      console.debug("Ignoring first mount in development...");
+
       return;
     }
 
-    let cleanup: (() => void) | undefined;
-
-    const run = async () => {
-      cleanup = await setup();
+    let mounted = true;
+    // use it as a local "ref" rather than a hook
+    // to avoid the dev StrictMode mount issue
+    const cleanupRef = {
+      current: undefined as (() => void) | undefined,
     };
 
-    run();
+    (async () => {
+      const cleanup = await setup();
 
-    hasRun.current = true;
-
-    return () => {
-      if (cleanup) {
+      if (mounted) {
+        cleanupRef.current = cleanup;
+      } else {
         cleanup();
       }
+    })();
+
+    return () => {
+      mounted = false;
+      cleanupRef.current?.();
     };
   }, [setup]);
 

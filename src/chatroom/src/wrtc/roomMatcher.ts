@@ -24,8 +24,12 @@ export function init(
     const client: Client = { ws, clientId };
 
     ws.send(JSON.stringify({ type: "id", clientId }));
-
     waiting.push(client);
+
+    ws.onclose = () => {
+      waiting = waiting.filter((client) => client.clientId !== clientId);
+      ready = ready.filter((client) => client.clientId !== clientId);
+    };
 
     // when client finishes the setup, it sends a "ready" message back
     ws.onmessage = (event) => {

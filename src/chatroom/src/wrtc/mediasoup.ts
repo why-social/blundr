@@ -13,6 +13,8 @@ import {
   AppData,
   WebRtcTransport,
   Producer,
+  DtlsState,
+  IceState,
 } from "mediasoup/types";
 
 let worker: Worker;
@@ -91,6 +93,8 @@ export function getCapabilities(): RtpCapabilities {
 }
 
 export async function create(clientId: string, direction: "send" | "receive") {
+  console.log(transports);
+
   if (!listenIp) {
     throw new Error("Mediasoup IP configuration error");
   }
@@ -102,14 +106,16 @@ export async function create(clientId: string, direction: "send" | "receive") {
     preferUdp: true,
   });
 
-  transport.observer.on("close", () => {
-    const sendReceiveTransports = transports.get(clientId);
-
-    if (sendReceiveTransports) {
-      sendReceiveTransports[direction] = undefined;
+  transport.on("dtlsstatechange", (dtlsState: DtlsState) => {
+    if (dtlsState === "closed" || dtlsState === "failed") {
+      cleanupTransport(transport.id);
     }
+  });
 
-    // TODO: close producers and consumers
+  transport.on("icestatechange", (iceState: IceState) => {
+    if (iceState === "disconnected" || iceState === "closed") {
+      cleanupTransport(transport.id);
+    }
   });
 
   let entry = transports.get(clientId);
@@ -300,4 +306,30 @@ function findTransportById(id: string) {
   }
 
   return null;
+}
+
+function cleanupTransport(transportId: string) {
+  for (const [clientId, entry] of transports.entries()) {
+    if (entry.send?.transport.id === transportId) {
+      for (const producer of Object.values(entry.send.producers)) {
+        producer?.close();
+      }
+
+      entry.send.transport.close();
+      entry.send = undefined;
+    }
+
+    if (entry.receive?.transport.id === transportId) {
+      for (const consumer of Object.values(entry.receive.consumers)) {
+        consumer?.close();
+      }
+
+      entry.receive.transport.close();
+      entry.receive = undefined;
+    }
+
+    if (!entry.send && !entry.receive) {
+      transports.delete(clientId);
+    }
+  }
 }
