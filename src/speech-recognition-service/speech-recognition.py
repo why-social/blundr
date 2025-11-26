@@ -27,9 +27,9 @@ for file in os.listdir("logs"):
     
     parts = file.split("Sesh_id:")[1].split("user_id:")
     session_id = parts[0]
-    user_id = parts[1]
+    user_id = parts[1].split(".txt")[0]
 
-    log_file.write(f"Session_id: {session_id}\n")
+    log_file.write(f"session_id,timestamp_start,timestamp_end,user_id,sentence\n")
     for segment in result["segments"]:
         for word in segment["words"]:
             word_start = word["start"]
@@ -42,8 +42,8 @@ for file in os.listdir("logs"):
             if prev_end is not None and (word_start - prev_end) > MIN_PAUSE:
                 sentence_end = prev_end
                 
-                dialouge_text = f"[{sentence_start:.2f}] --> [{sentence_end:.2f}][{user_id}]: {' '.join(sentence_buffer)}\n"
-                silence_text = f"[{prev_end:.2f}] --> [{word_start:.2f}][{user_id}]: . . .\n"
+                dialouge_text = f'{session_id},{sentence_start:.2f},{sentence_end:.2f},{user_id},"{" ".join(sentence_buffer)}"\n'
+                silence_text = f'{session_id},{prev_end:.2f},{word_start:.2f},{user_id},". . ."\n'
                 
                 log_file.write(dialouge_text)
                 log_file.write(silence_text)
@@ -55,7 +55,7 @@ for file in os.listdir("logs"):
             prev_end = word_end
     if sentence_buffer: 
         sentence_end = prev_end
-        last_sentence = f"[{sentence_start:.2f}] --> [{sentence_end:.2f}][{user_id}]: {' '.join(sentence_buffer)}\n"
+        last_sentence = f'{session_id},{sentence_start:.2f},{sentence_end:.2f},{user_id},"{" ".join(sentence_buffer)}"\n'
         log_file.write(last_sentence)
 
     log_file.close()
