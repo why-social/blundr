@@ -14,35 +14,6 @@ from common.utils.transformations import standardize_length
 
 SAVE_PATH = Path("out/emotion_predictions.csv")
 
-
-def load_model(model_path: str, n_mels: int, num_classes: int):
-    """Loads the trained CRNN model."""
-    print(f"Loading model from {model_path}...")
-    config = ModelConfig()
-    model = CRNNModel(config, n_mels=n_mels, num_classes=num_classes)
-    checkpoint = torch.load(model_path, map_location=config.device)
-    model.load_state_dict(checkpoint)
-    model.to(config.device)
-    model.eval()
-    print("Model loaded successfully.")
-    return model
-
-
-def predict_chunk(model, chunk, config, device):
-    spec = standardize_length(chunk, config.target_frames, mode="end")
-    spec = spec.unsqueeze(0).to(device)
-    with torch.no_grad():
-        outputs = model(spec)
-        probs = torch.nn.functional.softmax(outputs, dim=1)
-        conf, predicted = torch.max(probs, 1)
-
-    idx = predicted.item()
-    label = config.label_map_reverse.get(idx)
-    assert label is not None
-
-    return label, conf
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("model_path", type=str)
@@ -83,7 +54,7 @@ if __name__ == "__main__":
             # Predict
             spec = spec.unsqueeze(0).to(model_config.device)
             outputs = model(spec)
-            _, pred_idx = torch.max(outputs, 1)
+            confidence, pred_idx = torch.max(outputs, 1)
 
             emotion = data_config.label_map_reverse.get(pred_idx.item())
             if emotion is None:
@@ -95,6 +66,7 @@ if __name__ == "__main__":
                     "start": f"{seg.start_time:.2f}",
                     "end": f"{seg.end_time:.2f}",
                     "emotion": emotion,
+                    "confidence": confidence,
                 }
             )
 
