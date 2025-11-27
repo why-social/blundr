@@ -1,9 +1,9 @@
 import torch
 import torchaudio
-import numpy as np
 from pathlib import Path
 from common.config.dataset_config import DatasetConfig
 import soundfile as sf
+
 
 class AudioProcessor:
     def __init__(self, config: DatasetConfig):
@@ -16,12 +16,10 @@ class AudioProcessor:
         )
         self.db_transform = torchaudio.transforms.AmplitudeToDB()
 
-
     def file_to_spec(self, path: Path) -> torch.Tensor:
         """Reads a file and returns a Spectrogram Tensor"""
         waveform, sr = torchaudio.load(path)
         return self.waveform_to_spec(waveform, sr)
-
 
     def segment_to_spec(self, segment) -> torch.Tensor:
         """Partially loads an audio file and returns its spectrogram"""
@@ -32,19 +30,16 @@ class AudioProcessor:
         num_frames = int(segment.duration * native_sr)
 
         waveform, sr = torchaudio.load(
-            str(segment.audio_path),
-            frame_offset=frame_offset,
-            num_frames=num_frames
+            str(segment.audio_path), frame_offset=frame_offset, num_frames=num_frames
         )
 
         return self.waveform_to_spec(waveform, sr)
-
 
     def waveform_to_spec(self, waveform: torch.Tensor, sr: int) -> torch.Tensor:
         # resample if needed
         if sr != self.config.sample_rate:
             resampler = torchaudio.transforms.Resample(
-                sr, 
+                sr,
                 self.config.sample_rate,
             )
             waveform = resampler(waveform)
@@ -53,7 +48,6 @@ class AudioProcessor:
         if waveform.shape[0] > 1:
             waveform = torch.mean(waveform, dim=0, keepdim=True)
 
-
         # generate spectrogram
         mel_transform = torchaudio.transforms.MelSpectrogram(
             sample_rate=self.config.sample_rate,
@@ -61,7 +55,7 @@ class AudioProcessor:
             hop_length=self.config.hop_length,
             n_fft=self.config.n_fft,
         )
-        spec = mel_transform(waveform) # Shape: (1, 128, time)
+        spec = mel_transform(waveform)  # Shape: (1, 128, time)
 
         db_transform = torchaudio.transforms.AmplitudeToDB()
         spec = db_transform(spec)

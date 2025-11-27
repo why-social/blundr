@@ -3,6 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+
 class CRNNModel(nn.Module):
     def __init__(self, config: ModelConfig, n_mels: int, num_classes: int):
         super(CRNNModel, self).__init__()
@@ -60,16 +61,15 @@ class CRNNModel(nn.Module):
             nn.Linear(64, num_classes),
         )
 
-
     def forward(self, x):
         x = self.conv1(x)
         x = self.conv2(x)
         x = self.conv3(x)
 
         # Reshape
-        x = x.permute(0, 3, 1, 2) 
+        x = x.permute(0, 3, 1, 2)
         b, t, c, f = x.size()
-        x = x.reshape(b, t, c*f)
+        x = x.reshape(b, t, c * f)
 
         # Bottleneck Projection
         x = self.projection(x)

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
+
 @dataclass
 class ModelConfig:
     hidden_size: int = 96
@@ -14,4 +15,5 @@ class ModelConfig:
     @property
     def device(self) -> str:
         from torch.cuda import is_available
+
         return "cuda" if is_available() else "cpu"

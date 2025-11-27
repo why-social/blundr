@@ -2,6 +2,7 @@ from pathlib import Path
 from dataclasses import dataclass
 from typing import Dict
 
+
 @dataclass
 class AugmentsConfig:
     # Data prep (dataset preprocessing stage)
@@ -20,17 +21,21 @@ class AugmentsConfig:
 
 @dataclass
 class DatasetConfig:
-    sample_rate: int = 16000 # Hz
-    n_mels: int = 128 # resolution of the spectrogram - how many 'rows'
-    target_length: float = 3.0 # seconds
+    sample_rate: int = 16000  # Hz
+    n_mels: int = 128  # resolution of the spectrogram - how many 'rows'
+    target_length: float = 3.0  # seconds
     hop_length: int = 512
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
     raw_data_dir: Path = Path("./.raw_datasets")
 
     label_map = {
-        'angry': 0, 'disgust': 1, 'fear': 2,
-        'happy': 3, 'neutral': 4, 'sad': 5,
+        "angry": 0,
+        "disgust": 1,
+        "fear": 2,
+        "happy": 3,
+        "neutral": 4,
+        "sad": 5,
         # 'surprise': 6
     }
 
@@ -48,4 +53,3 @@ class DatasetConfig:
     @property
     def label_map_reverse(self) -> Dict[int, str]:
         return {v: k for k, v in self.label_map.items()}
-
