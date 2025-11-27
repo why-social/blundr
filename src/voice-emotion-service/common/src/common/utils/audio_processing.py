@@ -3,6 +3,7 @@ import torchaudio
 import numpy as np
 from pathlib import Path
 from common.config.dataset_config import DatasetConfig
+import soundfile as sf
 
 class AudioProcessor:
     def __init__(self, config: DatasetConfig):
@@ -15,17 +16,29 @@ class AudioProcessor:
         )
         self.db_transform = torchaudio.transforms.AmplitudeToDB()
 
+
     def file_to_spec(self, path: Path) -> torch.Tensor:
         """Reads a file and returns a Spectrogram Tensor"""
         waveform, sr = torchaudio.load(path)
         return self.waveform_to_spec(waveform, sr)
 
-    def mic_data_to_spec(self, audio_data: np.ndarray) -> torch.Tensor:
-        """Takes raw numpy audio (from pyaudio/sounddevice) and returns Spec"""
-        waveform = torch.from_numpy(audio_data).float()
-        if waveform.ndim == 1:
-            waveform = waveform.unsqueeze(0) # Add channel dim
-        return self.waveform_to_spec(waveform, self.config.sample_rate)
+
+    def segment_to_spec(self, segment) -> torch.Tensor:
+        """Partially loads an audio file and returns its spectrogram"""
+        info = sf.info(str(segment.audio_path))
+        native_sr = info.samplerate
+
+        frame_offset = int(segment.start_time * native_sr)
+        num_frames = int(segment.duration * native_sr)
+
+        waveform, sr = torchaudio.load(
+            str(segment.audio_path),
+            frame_offset=frame_offset,
+            num_frames=num_frames
+        )
+
+        return self.waveform_to_spec(waveform, sr)
+
 
     def waveform_to_spec(self, waveform: torch.Tensor, sr: int) -> torch.Tensor:
         # resample if needed
