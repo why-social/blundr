@@ -1,8 +1,8 @@
-from dataset.spec_dataset import SpecDataset, AudioSample
-from pathlib import Path
-
 import os
 import re
+from pathlib import Path
+
+from dataset.spec_dataset import AudioSample, SpecDataset
 
 
 def parse_crema(path, dataset: SpecDataset):

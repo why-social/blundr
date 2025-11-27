@@ -1,7 +1,7 @@
-from common.config.model_config import ModelConfig
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from common.config.model_config import ModelConfig
 
 
 class CRNNModel(nn.Module):

@@ -1,7 +1,7 @@
-import torch.nn.functional as F
 import numpy as np
-from numpy.random import randint
+import torch.nn.functional as F
 from librosa import effects
+from numpy.random import randint
 
 
 def standardize_length(spec, target_frames, mode="end"):

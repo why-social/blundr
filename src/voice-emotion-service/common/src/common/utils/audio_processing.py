@@ -1,8 +1,9 @@
+from pathlib import Path
+
+import soundfile as sf
 import torch
 import torchaudio
-from pathlib import Path
 from common.config.dataset_config import DatasetConfig
-import soundfile as sf
 
 
 class AudioProcessor:

@@ -1,9 +1,8 @@
 import argparse
 from pathlib import Path
-from data.load import load_transcribed_segments
-import torch
+
 import pandas as pd
-from tqdm import tqdm
+import torch
 
 # --- IMPORTS FROM COMMON SHARED LIB ---
 from common.config.dataset_config import DatasetConfig
@@ -11,6 +10,8 @@ from common.config.model_config import ModelConfig
 from common.model.crnn_model import CRNNModel
 from common.utils.audio_processing import AudioProcessor
 from common.utils.transformations import standardize_length
+from data.load import load_transcribed_segments
+from tqdm import tqdm
 
 SAVE_PATH = Path("out/emotion_predictions.csv")
 

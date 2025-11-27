@@ -1,17 +1,16 @@
 import shutil
+from dataclasses import dataclass
+from pathlib import Path
+from typing import List
+
 import torch
 import torchaudio
 import torchaudio.transforms as T
-
-from typing import List
-from dataclasses import dataclass
-from pathlib import Path
-from tqdm import tqdm
-from torch.utils.data import Dataset, DataLoader
-
-from common.utils.transformations import standardize_length
 from common.config.dataset_config import AugmentsConfig, DatasetConfig
 from common.utils.audio_processing import AudioProcessor
+from common.utils.transformations import standardize_length
+from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
 
 @dataclass

@@ -1,11 +1,11 @@
 import os
+from pathlib import Path
+
 import torch
 import torchaudio
-from pathlib import Path
-from tqdm import tqdm
-
 from common.config.dataset_config import AugmentsConfig
 from common.utils import transformations
+from tqdm import tqdm
 
 
 def augment_dataset(datasets, config: AugmentsConfig) -> None:
