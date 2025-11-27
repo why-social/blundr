@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   getRouterRtpCapabilities,
   createTransport,
@@ -14,13 +14,29 @@ import CallControls from "@/app/components/CallControls";
 import Video from "@/app/components/Video";
 import { init as initRoomHandler } from "@/api/room";
 import { AppData, Transport } from "mediasoup-client/types";
+import { useRouter } from "next/navigation";
 
 export default function Chat() {
+  const router = useRouter();
+
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const clientId = useRef<string>(null);
   const sessionId = useRef<string>(null);
+
+  const handleEndCallStableRef = useRef<() => void>(undefined);
+  const [queuing, setQueuing] = useState(true);
+
+  useEffect(() => {
+    handleEndCallStableRef.current = () => {
+      if (!!sessionId.current && !queuing) {
+        router.replace(`/analyze?session=${sessionId.current}`);
+      } else {
+        router.replace(`/`);
+      }
+    };
+  }, [queuing, router]);
 
   const setup = useCallback(async () => {
     const device = new Device();
@@ -36,7 +52,7 @@ export default function Chat() {
     let sendTransport: Transport<AppData> | null = null;
     let receiveTransport: Transport<AppData> | null = null;
 
-    // TODO: error handling
+    // TODO: error routing
     const cleanupRoom = initRoomHandler({
       onConnected: async (id: string) => {
         clientId.current = id;
@@ -138,6 +154,10 @@ export default function Chat() {
         }
 
         receiveTransport = transport;
+        setQueuing(false);
+      },
+      onPeerLeft: () => {
+        handleEndCallStableRef.current?.();
       },
     });
 
@@ -191,7 +211,8 @@ export default function Chat() {
     <div className="p-5">
       <CallControls
         ref={localVideoRef}
-        onEndCall={() => console.log("Call ended")}
+        pending={queuing}
+        onEndCall={() => handleEndCallStableRef.current?.()}
       />
       <Video ref={remoteVideoRef} />
     </div>

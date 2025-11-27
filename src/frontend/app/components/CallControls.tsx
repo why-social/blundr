@@ -1,21 +1,34 @@
-import { forwardRef, useEffect, useState } from "react";
+import { forwardRef, useEffect, useRef, useState } from "react";
 import Video from "./Video";
 import Image from "next/image";
 import clsx from "clsx";
 
 type CallControlsProps = {
+  pending?: boolean;
   onEndCall: () => void;
 };
 
 const CallControls = forwardRef<HTMLVideoElement, CallControlsProps>(
-  ({ onEndCall: onClose }, ref) => {
-    const [startTime] = useState(() => Date.now());
+  ({ pending, onEndCall: onClose }, ref) => {
+    const startTimeRef = useRef<number | null>(null);
     const [elapsedTime, setElapsedTime] = useState("00:00");
 
     useEffect(() => {
+      if (!pending && startTimeRef.current === null) {
+        startTimeRef.current = Date.now();
+      }
+    }, [pending]);
+
+    useEffect(() => {
+      if (pending || startTimeRef.current === null) {
+        return;
+      }
+
       const updateTimer = () => {
         const now = Date.now();
-        const differenceInSeconds = Math.floor((now - startTime) / 1000);
+        const differenceInSeconds = Math.floor(
+          (now - startTimeRef.current!) / 1000,
+        );
 
         const minutes = Math.floor(differenceInSeconds / 60)
           .toString()
@@ -25,10 +38,11 @@ const CallControls = forwardRef<HTMLVideoElement, CallControlsProps>(
         setElapsedTime(`${minutes}:${seconds}`);
       };
 
+      updateTimer();
       const intervalId = setInterval(updateTimer, 1000);
 
       return () => clearInterval(intervalId);
-    }, [startTime]);
+    }, [pending]);
 
     return (
       <div className="relative inline-block select-none [clip-path:inset(0_round_1.5rem)]">
@@ -36,10 +50,17 @@ const CallControls = forwardRef<HTMLVideoElement, CallControlsProps>(
           ref={ref}
           muted={true}
         />
-        <div className="absolute right-2 bottom-2 left-2 flex items-center justify-between">
-          <h3 className="mx-2.5 font-semibold text-shadow-[#00000035] text-shadow-lg">
-            {elapsedTime}
-          </h3>
+        <div
+          className={clsx(
+            "absolute right-2 bottom-2 left-2 flex items-center",
+            pending ? "justify-end" : "justify-between",
+          )}
+        >
+          {!pending && (
+            <h3 className="mx-2.5 font-semibold text-shadow-[#00000035] text-shadow-lg">
+              {elapsedTime}
+            </h3>
+          )}
           <button
             onClick={onClose}
             className={clsx(

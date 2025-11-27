@@ -16,6 +16,24 @@ import {
   DtlsState,
   IceState,
 } from "mediasoup/types";
+import { Optional } from "../utils/types.js";
+
+type TransportSection = {
+  transport: WebRtcTransport<AppData>;
+  producers: {
+    audio?: Producer<AppData>;
+    video?: Producer<AppData>;
+  };
+  consumers: {
+    audio?: Consumer<AppData>;
+    video?: Consumer<AppData>;
+  };
+};
+
+type Session = {
+  sessionId: string;
+  clients: string[];
+};
 
 let worker: Worker;
 let router: Router;
@@ -23,24 +41,12 @@ let router: Router;
 let listenIp: string | undefined;
 let announcedIp: string | undefined;
 
-const sessions = new Map<string, string[]>(); // session to involved clients
+const sessions = new Array<Session>();
 const transports = new Map<
   string,
   {
-    send?: {
-      transport: WebRtcTransport<AppData>;
-      producers: {
-        audio?: Producer<AppData>;
-        video?: Producer<AppData>;
-      };
-    };
-    receive?: {
-      transport: WebRtcTransport<AppData>;
-      consumers: {
-        audio?: Consumer<AppData>;
-        video?: Consumer<AppData>;
-      };
-    };
+    send?: Omit<TransportSection, "consumers">;
+    receive?: Omit<TransportSection, "producers">;
   }
 >();
 
@@ -77,11 +83,33 @@ export async function init(server: Server): Promise<void> {
 
   console.log("Mediasoup worker and router created");
 
-  initMatcher(server, function onSession(sessionId: string, clients: string[]) {
-    sessions.set(sessionId, clients);
+  initMatcher(
+    server,
+    function onSession(sessionId: string, clients: string[]) {
+      sessions.push({ sessionId, clients });
 
-    // TODO: Save streams to files
-  });
+      // TODO: Save streams to files
+    },
+    function onClose(clientId: string) {
+      const session = sessions.find((session) =>
+        session.clients.includes(clientId)
+      );
+
+      if (!session) {
+        cleanupClient(clientId);
+
+        return;
+      }
+
+      session.clients = session.clients.filter((client) => client !== clientId);
+
+      cleanupClient(clientId);
+
+      if (session.clients.length === 0) {
+        sessions.splice(sessions.indexOf(session), 1);
+      }
+    }
+  );
 }
 
 export function getCapabilities(): RtpCapabilities {
@@ -93,8 +121,6 @@ export function getCapabilities(): RtpCapabilities {
 }
 
 export async function create(clientId: string, direction: "send" | "receive") {
-  console.log(transports);
-
   if (!listenIp) {
     throw new Error("Mediasoup IP configuration error");
   }
@@ -294,13 +320,49 @@ export async function resume(consumerId: string) {
   return { resumed: true };
 }
 
+function cleanupClient(clientId: string) {
+  const entry = transports.get(clientId);
+  if (!entry) {
+    return;
+  }
+
+  if (entry.send) {
+    closeTransportSection(entry.send);
+  }
+
+  if (entry.receive) {
+    closeTransportSection(entry.receive);
+  }
+
+  transports.delete(clientId);
+  console.debug(`Resources for client ${clientId} cleaned up`);
+}
+
+function closeTransportSection(
+  section: Optional<TransportSection, "producers" | "consumers">
+) {
+  if (section.producers) {
+    for (const producer of Object.values(section.producers)) {
+      producer?.close();
+    }
+  }
+
+  if (section.consumers) {
+    for (const consumer of Object.values(section.consumers)) {
+      consumer?.close();
+    }
+  }
+
+  section.transport.close();
+}
+
 function findTransportById(id: string) {
   for (const { send, receive } of transports.values()) {
-    if (!!send && send.transport.id === id) {
+    if (send && send.transport.id === id) {
       return send.transport;
     }
 
-    if (!!receive && receive.transport.id === id) {
+    if (receive && receive.transport.id === id) {
       return receive.transport;
     }
   }
@@ -311,20 +373,14 @@ function findTransportById(id: string) {
 function cleanupTransport(transportId: string) {
   for (const [clientId, entry] of transports.entries()) {
     if (entry.send?.transport.id === transportId) {
-      for (const producer of Object.values(entry.send.producers)) {
-        producer?.close();
-      }
+      closeTransportSection(entry.send);
 
-      entry.send.transport.close();
       entry.send = undefined;
     }
 
     if (entry.receive?.transport.id === transportId) {
-      for (const consumer of Object.values(entry.receive.consumers)) {
-        consumer?.close();
-      }
+      closeTransportSection(entry.receive);
 
-      entry.receive.transport.close();
       entry.receive = undefined;
     }
 

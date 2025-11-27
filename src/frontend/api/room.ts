@@ -1,6 +1,7 @@
 export type WSHandler = {
   onConnected: (clientId: string) => Promise<void>;
   onMatch: (clientId: string, sessionId: string) => Promise<void>;
+  onPeerLeft: () => void;
 };
 
 export function init(handler: WSHandler) {
@@ -12,6 +13,17 @@ export function init(handler: WSHandler) {
   }
 
   const ws = new WebSocket(WS_URL);
+
+  const cleanup = () => {
+    ws.onmessage = null;
+
+    if (
+      ws.readyState === WebSocket.OPEN ||
+      ws.readyState === WebSocket.CONNECTING
+    ) {
+      ws.close();
+    }
+  };
 
   ws.onmessage = async (event) => {
     const message = JSON.parse(event.data);
@@ -32,21 +44,18 @@ export function init(handler: WSHandler) {
 
       case "match": {
         await handler.onMatch(message.data.clientId, message.data.sessionId);
-        ws.close();
+
+        break;
+      }
+
+      case "peer-left": {
+        handler.onPeerLeft();
+        cleanup();
 
         break;
       }
     }
   };
 
-  return () => {
-    ws.onmessage = null;
-
-    if (
-      ws.readyState === WebSocket.OPEN ||
-      ws.readyState === WebSocket.CONNECTING
-    ) {
-      ws.close();
-    }
-  };
+  return cleanup;
 }
