@@ -1,14 +1,8 @@
 import argparse
 from pathlib import Path
-import sys
-import time
 from data.load import load_transcribed_segments
 import torch
 import pandas as pd
-import torchaudio
-import numpy as np
-import sounddevice as sd
-from datetime import timedelta
 from tqdm import tqdm
 
 # --- IMPORTS FROM COMMON SHARED LIB ---
@@ -20,10 +14,11 @@ from common.utils.transformations import standardize_length
 
 SAVE_PATH = Path("out/emotion_predictions.csv")
 
+
 def load_model(model_path: str, n_mels: int, num_classes: int):
     """Loads the trained CRNN model."""
     print(f"Loading model from {model_path}...")
-    config = ModelConfig() 
+    config = ModelConfig()
     model = CRNNModel(config, n_mels=n_mels, num_classes=num_classes)
     checkpoint = torch.load(model_path, map_location=config.device)
     model.load_state_dict(checkpoint)
@@ -34,7 +29,7 @@ def load_model(model_path: str, n_mels: int, num_classes: int):
 
 
 def predict_chunk(model, chunk, config, device):
-    spec = standardize_length(chunk, config.target_frames, mode='end')
+    spec = standardize_length(chunk, config.target_frames, mode="end")
     spec = spec.unsqueeze(0).to(device)
     with torch.no_grad():
         outputs = model(spec)
@@ -64,7 +59,7 @@ if __name__ == "__main__":
     processor = AudioProcessor(data_config)
 
     model = CRNNModel(
-        model_config, 
+        model_config,
         n_mels=data_config.n_mels,
         num_classes=data_config.n_classes,
     ).to(model_config.device)
@@ -72,14 +67,18 @@ if __name__ == "__main__":
     model.load_state_dict(torch.load(args.model_path, map_location=model_config.device))
     model.eval()
 
-    segments = load_transcribed_segments(Path(args.trans_path), Path(args.audio_path), data_config)
+    segments = load_transcribed_segments(
+        Path(args.trans_path), Path(args.audio_path), data_config
+    )
     print(f"Split into {len(segments)} chunks for inference.")
 
     results = []
     with torch.no_grad():
         for seg in tqdm(segments, desc="Predicting"):
-            spec = processor.segment_to_spec(seg) # load chunk (<= target_len)
-            spec = standardize_length(spec, data_config.target_frames, mode='end') # pad if needed
+            spec = processor.segment_to_spec(seg)  # load chunk (<= target_len)
+            spec = standardize_length(
+                spec, data_config.target_frames, mode="end"
+            )  # pad if needed
 
             # Predict
             spec = spec.unsqueeze(0).to(model_config.device)
@@ -90,12 +89,14 @@ if __name__ == "__main__":
             if emotion is None:
                 emotion = "unknown"
 
-            results.append({
-                "file": seg.audio_path.name,
-                "start": f"{seg.start_time:.2f}",
-                "end": f"{seg.end_time:.2f}",
-                "emotion": emotion
-            })
+            results.append(
+                {
+                    "file": seg.audio_path.name,
+                    "start": f"{seg.start_time:.2f}",
+                    "end": f"{seg.end_time:.2f}",
+                    "emotion": emotion,
+                }
+            )
 
     pd.DataFrame(results).to_csv(str(SAVE_PATH), index=False)
     print(f"Saved to {SAVE_PATH}")

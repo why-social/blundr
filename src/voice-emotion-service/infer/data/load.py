@@ -5,10 +5,9 @@ from typing import List
 from common.config.dataset_config import DatasetConfig
 from data.segment import TranscribedSegment
 
+
 def load_transcribed_segments(
-    csv_path: Path, 
-    audio_path: Path, 
-    config: DatasetConfig
+    csv_path: Path, audio_path: Path, config: DatasetConfig
 ) -> List[TranscribedSegment]:
     """
     Reads CSV and splits speaking sections into chunks matching the maximum size
@@ -22,8 +21,8 @@ def load_transcribed_segments(
 
     # Iterate through every speaking turn
     for _, row in df.iterrows():
-        t_start = float(row['timestamp_start'])
-        t_end = float(row['timestamp_end'])
+        t_start = float(row["timestamp_start"])
+        t_end = float(row["timestamp_end"])
         duration = t_end - t_start
 
         target_sec = config.target_length
@@ -39,10 +38,6 @@ def load_transcribed_segments(
                 chunk_start = t_start + (i * chunk_len)
                 chunk_end = chunk_start + chunk_len
 
-                segments.append(TranscribedSegment(
-                    audio_path,
-                    chunk_start,
-                    chunk_end
-                ))
+                segments.append(TranscribedSegment(audio_path, chunk_start, chunk_end))
 
     return segments
