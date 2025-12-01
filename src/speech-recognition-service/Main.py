@@ -1,4 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form 
+from speech_recognition import transcribe_audio
 
 app = FastAPI()
 
@@ -18,7 +19,9 @@ async def get_audio(
     with open(file_save_path, "wb") as file:
         file.write(await audio.read())
         
+    log = transcribe_audio()
+
     return {
-        "status": "ok",
-        "saved_as": file_save_path
+        "status": 200,
+        "log": log  
         }
