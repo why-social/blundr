@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+dist/
+out/
+test/
+.cache/
+.backup/
+.raw_datasets/
+.venv/
