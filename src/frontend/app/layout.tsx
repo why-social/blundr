@@ -1,6 +1,7 @@
 import { DM_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
+import { BlockNavigationProvider } from "./providers/BlockNavigationProvider";
 
 export const metadata: Metadata = {
   title: "Blundr",
@@ -23,7 +24,9 @@ export default function RootLayout({
       lang="en"
       className={`${font.variable}`}
     >
-      <body className="relative min-h-screen antialiased">{children}</body>
+      <body className="relative min-h-screen antialiased">
+        <BlockNavigationProvider>{children}</BlockNavigationProvider>
+      </body>
     </html>
   );
 }
