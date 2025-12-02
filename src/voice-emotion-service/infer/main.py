@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     "start": f"{seg.start_time:.2f}",
                     "end": f"{seg.end_time:.2f}",
                     "emotion": emotion,
-                    "confidence": confidence,
+                    "confidence": confidence.item(),
                 }
             )
 
