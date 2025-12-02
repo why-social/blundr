@@ -7,11 +7,22 @@ WORKDIR /src/speech-recognition-service
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg && rm -rf /var/lib/apt/lists/*
 
-RUN python -m pip install --upgrade pip
+RUN python -m venv /venv
+ENV PATH="/venv/bin:$PATH"
 
-RUN pip install --no-cache-dir -U openai-whisper fastapi uvicorn[standard] python-multipart 
+RUN pip install --upgrade pip
+RUN pip install --no-cache-dir -U torch --index-url https://download.pytorch.org/whl/cpu 
+RUN pip install --no-cache-dir \
+    openai-whisper \
+    fastapi \
+    uvicorn[standard] \
+    python-multipart 
 
 COPY . .
+
+RUN find /venv -name "*.pyc" -delete \
+    && rm -rf /venv/lib/python3.11/site-packages/tests \
+    && rm -rf /venv/lib/python3.11/site-packages/*.dist-info/__pycache__
 
 # Running stage
 FROM python:3.11-slim
@@ -21,9 +32,13 @@ WORKDIR /src/speech-recognition-service
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg && rm -rf /var/lib/apt/lists/*
 
+
 # Retreive files from builder to minimize the amount of downloading
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages 
-COPY --from=builder /usr/local/bin /usr/local/bin
+#COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages 
+#COPY --from=builder /usr/local/bin /usr/local/bin
+
+COPY --from=builder /venv /venv
+ENV PATH="/venv/bin:$PATH"
 COPY --from=builder /src/speech-recognition-service /src/speech-recognition-service
 
 EXPOSE 8000

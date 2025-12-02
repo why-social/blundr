@@ -3,7 +3,7 @@ import whisper as ws
 import os
 
 MIN_PAUSE = 0.2
-model = ws.load_model("base")
+model = ws.load_model("base", device="cpu")
 
 
 prev_end = None
