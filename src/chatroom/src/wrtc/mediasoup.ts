@@ -17,6 +17,7 @@ import {
   IceState,
 } from "mediasoup/types";
 import { Optional } from "../utils/types.js";
+import { startSessionRecording, stopSessionRecording } from "./recorder.js";
 
 type TransportSection = {
   transport: WebRtcTransport<AppData>;
@@ -42,7 +43,8 @@ let listenIp: string | undefined;
 let announcedIp: string | undefined;
 
 const sessions = new Array<Session>();
-const transports = new Map<
+
+export const transports = new Map<
   string,
   {
     send?: Omit<TransportSection, "consumers">;
@@ -85,10 +87,10 @@ export async function init(server: Server): Promise<void> {
 
   initMatcher(
     server,
-    function onSession(sessionId: string, clients: string[]) {
+    async function onSession(sessionId: string, clients: string[]) {
       sessions.push({ sessionId, clients });
 
-      // TODO: Save streams to files
+      await startSessionRecording(router, sessionId, clients);
     },
     function onClose(clientId: string) {
       const session = sessions.find((session) =>
@@ -106,6 +108,7 @@ export async function init(server: Server): Promise<void> {
       cleanupClient(clientId);
 
       if (session.clients.length === 0) {
+        stopSessionRecording(session.sessionId);
         sessions.splice(sessions.indexOf(session), 1);
       }
     }
