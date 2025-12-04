@@ -26,13 +26,43 @@ class AudioProcessor:
         """Partially loads an audio file and returns its spectrogram"""
         info = sf.info(str(segment.audio_path))
         native_sr = info.samplerate
-
-        frame_offset = int(segment.start_time * native_sr)
-        num_frames = int(segment.duration * native_sr)
-
+        total_frames = info.frames
+        
+        # Calculate target frames for the model (e.g. 3.0s * 16000)
+        model_target_frames = int(self.config.target_length * native_sr)
+        segment_frames = int(segment.duration * native_sr)
+        
+        # Determine center of the segment
+        start_frame = int(segment.start_time * native_sr)
+        center_frame = start_frame + (segment_frames // 2)
+        
+        # Determine new start/end to ensure we get exactly 3.0s
+        half_window = model_target_frames // 2
+        new_start = center_frame - half_window
+        new_end = new_start + model_target_frames
+        
+        # Handle Edge Cases (Beginning/End of file)
+        pad_left = 0
+        pad_right = 0
+        
+        if new_start < 0:
+            pad_left = abs(new_start)
+            new_start = 0
+            
+        if new_end > total_frames:
+            pad_right = new_end - total_frames
+            new_end = total_frames
+            
+        # Load the Context Window
         waveform, sr = torchaudio.load(
-            str(segment.audio_path), frame_offset=frame_offset, num_frames=num_frames
+            str(segment.audio_path),
+            frame_offset=new_start,
+            num_frames=new_end - new_start
         )
+        
+        # Apply padding if we hit the edge of the file
+        if pad_left > 0 or pad_right > 0:
+            waveform = torch.nn.functional.pad(waveform, (pad_left, pad_right))
 
         return self.waveform_to_spec(waveform, sr)
 
