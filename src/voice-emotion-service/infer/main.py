@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 import torch
+import torch.nn.functional as F
 
 # --- IMPORTS FROM COMMON SHARED LIB ---
 from common.config.dataset_config import DatasetConfig
@@ -54,10 +55,13 @@ if __name__ == "__main__":
 
             # Predict
             spec = spec.unsqueeze(0).to(model_config.device)
+
             outputs = model(spec)
-            confidence, pred_idx = torch.max(outputs, 1)
+            probs = F.softmax(outputs, dim=1)
+            confidence, pred_idx = torch.max(probs, 1)
 
             emotion = data_config.label_map_reverse.get(pred_idx.item())
+
             if emotion is None:
                 emotion = "unknown"
 
@@ -66,6 +70,7 @@ if __name__ == "__main__":
                     "file": seg.audio_path.name,
                     "start": f"{seg.start_time:.2f}",
                     "end": f"{seg.end_time:.2f}",
+                    "duration": f"{seg.duration:.2f}",
                     "emotion": emotion,
                     "confidence": confidence.item(),
                 }
