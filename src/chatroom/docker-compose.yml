@@ -1,0 +1,10 @@
+services:
+  chatroom:
+    build: .
+    container_name: chatroom
+    network_mode: host
+    ports:
+      - "${PORT}:${PORT}"
+    environment:
+      - PORT=${PORT}
+    restart: unless-stopped
