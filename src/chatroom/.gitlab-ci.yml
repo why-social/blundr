@@ -1,0 +1,47 @@
+stages:
+  - build
+  - push
+
+variables:
+  IMAGE_NAME: "blundr/chatroom"
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_CLI_EXPERIMENTAL: enabled
+  DOCKER_BUILDKIT: 1
+
+services:
+  - docker:20.10.24-dind
+
+build:
+  stage: build
+  image: docker:20.10.24
+  tags:
+    - docker-build
+  script:
+    - cd src/chatroom
+    - docker info
+    - docker buildx create --name builder --use || docker buildx use builder
+    - docker buildx inspect --bootstrap
+    - docker buildx build
+      --platform linux/amd64
+      -t $IMAGE_NAME:latest
+      --load .
+    - docker save $IMAGE_NAME:latest -o chatroom.tar
+  artifacts:
+    paths:
+      - src/chatroom/chatroom.tar
+    expire_in: 1 hour
+
+push:
+  stage: push
+  image: docker:20.10.24
+  tags:
+    - docker-build
+  dependencies:
+    - build
+  script:
+    - cd src/chatroom
+    - docker load -i chatroom.tar
+    - docker tag $IMAGE_NAME:latest $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d | docker login -u _json_key --password-stdin https://europe-north2-docker.pkg.dev
+    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
