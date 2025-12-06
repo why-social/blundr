@@ -30,14 +30,14 @@ else:
 if MODE == "dev":
 	print("Using device:", device)
 
-model = models.resnet50(weights=None)
+model = models.resnet34(weights=None)
 
 # Apply the same head architecture as in training
 model.fc = nn.Sequential(
-	nn.Linear(2048, 512),
+	nn.Linear(512, 256),
 	nn.ReLU(),
 	nn.Dropout(0.4),
-	nn.Linear(512, len(emotion_classes))
+	nn.Linear(256, len(emotion_classes))
 )
 
 # Load state dict (handle DataParallel if needed)
@@ -57,7 +57,7 @@ if MODE == "dev":
 # Preprocessing, same as during training
 transform = transforms.Compose([
 	transforms.Grayscale(num_output_channels=3),
-	transforms.Resize((224, 224)),
+	transforms.Resize((128, 128)),
 	transforms.ToTensor(),
 	transforms.Normalize([0.5, 0.5, 0.5],
 					[0.5, 0.5, 0.5])

@@ -2,6 +2,8 @@
 
 This service provides an API endpoint to process video files and report detected face emotions.
 
+Current pretrained model: ResNet34
+
 ## API Endpoints
 - `POST /predict-face-emotion`: Endpoint to upload a video file and receive detected face emotions.
   - **Parameters (Form Data)**:
