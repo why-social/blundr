@@ -5,11 +5,10 @@ export type WSHandler = {
 };
 
 export function init(handler: WSHandler) {
-  const WS_URL = process.env.NEXT_PUBLIC_WS_URL;
+  const WS_URL = process.env.NEXT_PUBLIC_CHATROOM_WS_URL;
 
   if (!WS_URL) {
-    console.error("NEXT_PUBLIC_WS_URL is not provided.");
-    process.exit(1);
+    throw Error("NEXT_PUBLIC_CHATROOM_WS_URL is not provided.");
   }
 
   const ws = new WebSocket(WS_URL);

@@ -1,13 +1,12 @@
-export async function apiRequest<T>(
+export async function chatroomRequest<T>(
   method: "POST" | "GET" | "PUT" | "DELETE" | "PATCH",
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+  const BACKEND_URL = process.env.NEXT_PUBLIC_CHATROOM_URL;
 
   if (!BACKEND_URL) {
-    console.error("NEXT_PUBLIC_BACKEND_URL is not provided.");
-    process.exit(1);
+    throw Error("NEXT_PUBLIC_CHATROOM_URL is not provided.");
   }
 
   const res = await fetch(`${BACKEND_URL}/api/v1/${path}`, {
@@ -24,3 +23,5 @@ export async function apiRequest<T>(
 
   return res.json();
 }
+
+// TODO: Add aggregator request function

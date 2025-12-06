@@ -33,7 +33,9 @@ export function useMediaSoup(
         return null;
       });
 
-    if (!stream) return () => {};
+    if (!stream) {
+      return () => {};
+    }
 
     const device = new Device();
     await device.load({

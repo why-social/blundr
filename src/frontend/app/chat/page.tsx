@@ -41,10 +41,13 @@ export default function Chat() {
         setPermissionError(
           "Camera/microphone blocked. Enable them and reload.",
         );
+
         return;
       }
 
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
 
       const cleanup = await setup();
 

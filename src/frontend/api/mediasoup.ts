@@ -6,7 +6,7 @@ import {
   RtpCapabilities,
   RtpParameters,
 } from "mediasoup-client/types";
-import { apiRequest } from "./request";
+import { chatroomRequest } from "./request";
 
 export type WRTCTransport = {
   id: string;
@@ -27,14 +27,14 @@ export type WRTCConsumer = {
 };
 
 export async function getRouterRtpCapabilities() {
-  return apiRequest<RtpCapabilities>("GET", "wrtc/capabilities");
+  return chatroomRequest<RtpCapabilities>("GET", "wrtc/capabilities");
 }
 
 export async function createTransport(
   clientId: string,
   direction: "send" | "receive",
 ) {
-  return apiRequest<WRTCTransport>("POST", "wrtc/create", {
+  return await chatroomRequest<WRTCTransport>("POST", "wrtc/create", {
     clientId,
     direction,
   });
@@ -44,7 +44,7 @@ export async function connectTransport(
   transportId: string,
   dtlsParameters: DtlsParameters,
 ) {
-  return apiRequest("POST", "wrtc/connect", {
+  return chatroomRequest("POST", "wrtc/connect", {
     transportId,
     dtlsParameters,
   });
@@ -55,7 +55,7 @@ export async function createProducer(
   kind: "audio" | "video",
   rtpParameters: RtpParameters,
 ) {
-  return apiRequest<WRTCProducer>("POST", "wrtc/produce", {
+  return chatroomRequest<WRTCProducer>("POST", "wrtc/produce", {
     transportId,
     kind,
     rtpParameters,
@@ -68,7 +68,7 @@ export async function createConsumer(
   kind: MediaKind,
   rtpCapabilities: RtpCapabilities,
 ) {
-  return apiRequest<WRTCConsumer>("POST", "wrtc/consume", {
+  return chatroomRequest<WRTCConsumer>("POST", "wrtc/consume", {
     consumingClientId,
     clientId,
     kind,
@@ -77,5 +77,5 @@ export async function createConsumer(
 }
 
 export async function resumeConsumer(consumerId: string) {
-  return apiRequest("POST", "wrtc/resume", { consumerId });
+  return chatroomRequest("POST", "wrtc/resume", { consumerId });
 }
