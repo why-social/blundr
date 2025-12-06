@@ -8,9 +8,9 @@ def aggregate_files(user_1: dict, user_1_id: str, user_2: dict, user_2_id: str, 
         {"data": user_2, "user_id": user_2_id}
     ]
     for user in users:
-        print(f"Beginning aggregation process for User:{user["user_id"]}...\n")
-        print(f"The face emotion csv contents: {user["data"]["face"]}")
-        print(f"The voice emotion csv contents: {user["data"]["voice"]}")
+        print(f"Beginning aggregation process for User:{user['user_id']}...\n")
+        print(f"The face emotion csv contents: {user['data']['face']}")
+        print(f"The voice emotion csv contents: {user['data']['voice']}")
         
         merged_users_data.append(ve_fe_aggregation(user["data"], user["user_id"], session_id))
     
