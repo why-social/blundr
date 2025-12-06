@@ -2,6 +2,7 @@ from fastapi import FastAPI, Form, UploadFile, File
 from aggregator import aggregate_files
 import requests
 import httpx
+import json
 import io
 
 app = FastAPI()
@@ -14,29 +15,54 @@ session_aggregate_cache = {}
 
 async def call_llm(transcription: dict, user_id: str):
     prompt = f"""
-    Context: The below JSON contains full information about a date between two users.
-    You must:
-    - analyze spoken words
-    - evaluate emotional reactions
-    - interpret facial emotion data
-    - summarize performance of both users
-    - highlight key moments
-    - separate sections clearly
+    You are an expert relationship analyst.  
+    You will receive a JSON object with the following data:
+    - spoken transcription
+    - emotion data per user
+    - facial emotion stream
+    - timestamps
 
-    If a user_id is provided, tailor part of the analysis to speak *directly to them*.
+    You **MUST NOT** guess.  
+    You must analyze **ONLY** the provided JSON.
 
-    USER requesting analysis: {user_id}
+    Your tasks:
+    1. **Conversation Summary**  
+    - Summarize the date from start to end  
+    - Mention mood, tone, and flow
 
-    Transcription data:
+    2. **User-by-User Evaluation**  
+    - Spoken content analysis  
+    - Emotional expression analysis  
+    - Notable behavioral patterns
+
+    3. **Key Moments (Chronological)**  
+    - Timestamp  
+    - Who did what  
+    - Why it matters
+
+    4. **Direct Message to USER {user_id}**  
+    - Personalized guidance  
+    - What they did well  
+    - What to improve next time  
+    (If user_id is provided)
+
+    5. **Important:**
+    - Use **only** data from the JSON  
+    - Do **not** invent emotions or quantities  
+    - Do **not** summarize the JSON; interpret it
+
+    BEGIN ANALYSIS.
+
+    JSON:
     {transcription}
     """
     async with httpx.AsyncClient(timeout=None) as client:
         response = await client.post(
             "http://localhost:11434/api/generate",
-            json={"model": "llama3", "prompt": prompt},
-            timeout=None
-        )
-        return {"output": response.text}
+            json={"model": "llama3", "prompt": prompt, "stream": False}
+            )
+    data = response.json()    
+    return {"output": data.get("response", "")}
 
 
 @app.get("/analyse")
