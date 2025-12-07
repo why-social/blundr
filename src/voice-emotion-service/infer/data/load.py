@@ -29,7 +29,6 @@ def load_transcribed_segments(
     trans_buf = StringIO(transcript)
     df = pd.read_csv(trans_buf, skipinitialspace=True)
     print(f"INFO [load_transcribed_segments()]: loaded {df.size} transcription entries")
-    print(df.head())
     segments = []
 
     # Iterate through every speaking turn

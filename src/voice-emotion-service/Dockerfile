@@ -16,13 +16,13 @@ WORKDIR /app/infer
 COPY common/pyproject.toml /app/common/
 COPY infer/pyproject.toml infer/uv.lock /app/infer/
 
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --frozen --no-install-project
 
 COPY common/ /app/common/
 COPY infer/ /app/infer/
 
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --locked
 
 CMD ["/app/infer/.venv/bin/fastapi", "run", "main.py", "--port", "42069", "--host", "0.0.0.0"]

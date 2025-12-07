@@ -5,4 +5,4 @@ services:
         volumes:
             - ./train/out/model.pth:/etc/model.pth:ro,z
         ports:
-            - 42069:80
+            - 42069:42069
