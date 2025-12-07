@@ -17,7 +17,6 @@ with equal amounts of silence (to avoid mostly silent chunks at ends of sentence
 **!!From the parent directory `voice-emotion-service`!!**
 
 1. `docker build -t ve-infer .`
-
 2. `docker compose up`
 
 ## API
@@ -34,8 +33,8 @@ with equal amounts of silence (to avoid mostly silent chunks at ends of sentence
 
 `transcript`: the transcript from the transcription service, as a stringified csv
 
-- expected format: `session_id,timestamp_start,timestamp_end,user_id,sentence\n...`
-
+- expected format: `timestamp_start,timestamp_end\n...`
+    - *the transcription service output contains more columnts, but these are the only ones used*
 - the input is expected to have no empty entries (no empty sentences/silences)
 
 ### Request
