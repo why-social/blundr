@@ -1,15 +1,17 @@
 from pathlib import Path
+
 from data.prediction import predictions_to_csv
-from fastapi import FastAPI, UploadFile, File, Form 
+from fastapi import FastAPI, File, Form, UploadFile
 from model.model import Model
 
 app = FastAPI()
 model = Model(Path("/etc/model.pth"))
 
+
 @app.post("/infer")
 async def get_audio(
-    session_id: str = Form(...), 
-    user_id: str = Form(...), 
+    session_id: str = Form(...),
+    user_id: str = Form(...),
     audio: UploadFile = File(...),
     transcript: str = Form(...),
 ):
@@ -27,4 +29,3 @@ async def get_audio(
         "user_id": user_id,
         "predictions": predictions_to_csv(output),
     }
-

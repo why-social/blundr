@@ -21,10 +21,10 @@ def load_transcribed_segments(
         return []
 
     if "\\n" in transcript:
-        transcript = transcript.replace("\\n", "\n") # make newlines work
+        transcript = transcript.replace("\\n", "\n")  # make newlines work
 
-    transcript = transcript.replace("\r", "") # fix windows strings
-    transcript = transcript.strip() # sanity check blank leading/trailing lines
+    transcript = transcript.replace("\r", "")  # fix windows strings
+    transcript = transcript.strip()  # sanity check blank leading/trailing lines
 
     trans_buf = StringIO(transcript)
     df = pd.read_csv(trans_buf, skipinitialspace=True)

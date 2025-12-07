@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 
 
 @dataclass
@@ -49,4 +48,3 @@ class DatasetConfig:
     @property
     def n_classes(self) -> int:
         return len(self.label_map)
-

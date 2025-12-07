@@ -1,8 +1,7 @@
-import torch
 from pathlib import Path
 from typing import List
-from torch.nn.functional import softmax
 
+import torch
 from common.config.dataset_config import DatasetConfig
 from common.config.model_config import ModelConfig
 from common.model.crnn_model import CRNNModel
@@ -10,7 +9,9 @@ from common.utils.audio_processing import AudioProcessor
 from common.utils.transformations import standardize_length
 from data.load import load_transcribed_segments
 from data.prediction import Prediction
+from torch.nn.functional import softmax
 from tqdm import tqdm
+
 
 class Model:
     def __init__(self, model_path: Path) -> None:
@@ -25,7 +26,9 @@ class Model:
         ).to(self.model_config.device)
 
         print("Loading model...")
-        self.model.load_state_dict(torch.load(model_path, map_location=self.model_config.device))
+        self.model.load_state_dict(
+            torch.load(model_path, map_location=self.model_config.device)
+        )
         self.model.eval()
         print("Loaded")
 
@@ -56,12 +59,13 @@ class Model:
                 if emotion is None:
                     emotion = "unknown"
 
-                results.append(Prediction(
-                    start_time=seg.start_time,
-                    end_time=seg.end_time,
-                    label=emotion,
-                    confidence=confidence.item()
-                ))
+                results.append(
+                    Prediction(
+                        start_time=seg.start_time,
+                        end_time=seg.end_time,
+                        label=emotion,
+                        confidence=confidence.item(),
+                    )
+                )
 
         return results
-
