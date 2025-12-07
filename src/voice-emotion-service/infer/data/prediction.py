@@ -19,7 +19,13 @@ def predictions_to_csv(predictions: List[Prediction]) -> str:
 
     writer.writeheader()
     for pred in predictions:
-        writer.writerow(asdict(pred))
+        row = asdict(pred)
+
+        row['start_time'] = f"{pred.start_time:.2f}"
+        row['end_time'] = f"{pred.end_time:.2f}"
+        row['confidence'] = f"{pred.confidence:.2f}"
+
+        writer.writerow(row)
 
     return output.getvalue()
 
