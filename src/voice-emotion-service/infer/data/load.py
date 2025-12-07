@@ -1,3 +1,4 @@
+from io import StringIO
 from pathlib import Path
 from typing import List
 
@@ -8,16 +9,27 @@ from data.segment import TranscribedSegment
 
 
 def load_transcribed_segments(
-    csv_path: Path, audio_path: Path, config: DatasetConfig
+    transcript: str, audio_path: Path, config: DatasetConfig
 ) -> List[TranscribedSegment]:
     """
     Reads CSV and splits speaking sections into chunks matching the maximum size
     from `DatasetConfig`, and optimising for minimal padding.
     """
-    assert csv_path.exists(), f"ERROR: Transcription file not found: {csv_path}"
     assert audio_path.exists(), f"ERROR: Audio file not found: {audio_path}"
 
-    df = pd.read_csv(csv_path)
+    if not transcript:
+        return []
+
+    if "\\n" in transcript:
+        transcript = transcript.replace("\\n", "\n") # make newlines work
+
+    transcript = transcript.replace("\r", "") # fix windows strings
+    transcript = transcript.strip() # sanity check blank leading/trailing lines
+
+    trans_buf = StringIO(transcript)
+    df = pd.read_csv(trans_buf, skipinitialspace=True)
+    print(f"INFO [load_transcribed_segments()]: loaded {df.size} transcription entries")
+    print(df.head())
     segments = []
 
     # Iterate through every speaking turn

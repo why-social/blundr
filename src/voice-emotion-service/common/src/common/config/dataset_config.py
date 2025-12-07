@@ -50,6 +50,3 @@ class DatasetConfig:
     def n_classes(self) -> int:
         return len(self.label_map)
 
-    @property
-    def label_map_reverse(self) -> Dict[int, str]:
-        return {v: k for k, v in self.label_map.items()}
