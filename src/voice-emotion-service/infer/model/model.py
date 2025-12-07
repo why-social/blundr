@@ -1,6 +1,7 @@
 import torch
 from pathlib import Path
 from typing import List
+from torch.nn.functional import softmax
 
 from common.config.dataset_config import DatasetConfig
 from common.config.model_config import ModelConfig
@@ -47,7 +48,9 @@ class Model:
                 # Predict
                 spec = spec.unsqueeze(0).to(self.model_config.device)
                 outputs = self.model(spec)
-                confidence, pred_idx = torch.max(outputs, 1)
+
+                probs = softmax(outputs, dim=1)
+                confidence, pred_idx = torch.max(probs, 1)
 
                 emotion = self.label_map.get(pred_idx.item())
                 if emotion is None:
