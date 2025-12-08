@@ -1,5 +1,12 @@
 import pandas as pd
 import io
+import re
+
+def extract_section_llm(text: str, name: str):
+    pattern = rf"=+BEGIN_{name}=+\s*(.*?)\s*=+END_{name}=+"
+    match = re.search(pattern, text, flags=re.DOTALL) 
+    return match.group(1).strip() if match else None   
+            
 
 def aggregate_files(user_1: dict, user_1_id: str, user_2: dict, user_2_id: str, session_id: str):
     merged_users_data = []
@@ -43,6 +50,7 @@ def combine_transcriptions(merged_users_data: list, user_1: str, user_1_id: str,
             "session_id": row["session_id"],
             "time": time,
             "speaking_user": speaker,
+            "sentence": sentence,
             "speaker_voice_emotion": speaker_voice,
             "speaker_face_emotion": speaker_face,
             "listener_user": listener,
@@ -50,7 +58,7 @@ def combine_transcriptions(merged_users_data: list, user_1: str, user_1_id: str,
         })
     
     final_df = pd.DataFrame(final_rows)
-    
+    print(f"This is the final df-json conversion output: {final_df.to_json(orient='records')}")
     return final_df.to_json(orient="records") 
 
 def ve_fe_aggregation(user: dict, user_id: str, session_id: str):
