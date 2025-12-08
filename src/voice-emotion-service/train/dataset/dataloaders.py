@@ -31,9 +31,9 @@ def create_dataloaders(
     )
 
     # 4. Create Datasets
-    train_ds = SpecDataset(dataset.config, aug_config, train_samples, is_train=True)
-    val_ds = SpecDataset(dataset.config, aug_config, val_samples, is_train=False)
-    test_ds = SpecDataset(dataset.config, aug_config, test_samples, is_train=False)
+    train_ds = SpecDataset(dataset.data_config, aug_config, train_samples, is_train=True)
+    val_ds = SpecDataset(dataset.data_config, aug_config, val_samples, is_train=False)
+    test_ds = SpecDataset(dataset.data_config, aug_config, test_samples, is_train=False)
 
     # 5. Create DataLoaders
     # shuffle=True only for training

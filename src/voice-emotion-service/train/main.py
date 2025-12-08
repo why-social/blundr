@@ -27,7 +27,7 @@ if __name__ == "__main__":
     )
 
     train_labels = [s.emotion for s in train_loader.dataset.samples]
-    class_counts = [train_labels.count(k) for k in dataset.label_map.keys()]
+    class_counts = [train_labels.count(k) for k in DATASET_CONFIG.label_map.keys()]
     total_samples = sum(class_counts)
     weights = [
         total_samples / (len(class_counts) * c) if c > 0 else 0 for c in class_counts
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     print(f"Class Weights: {weights}")
 
     model = CRNNModel(
-        MODEL_CONFIG, dataset.config.n_mels, len(dataset.label_map.keys())
+        MODEL_CONFIG, DATASET_CONFIG.n_mels, DATASET_CONFIG.n_classes
     ).to(MODEL_CONFIG.device)
     criterion = nn.CrossEntropyLoss(weight=class_weights)
     optimizer = torch.optim.Adam(
