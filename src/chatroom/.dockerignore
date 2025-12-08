@@ -1,5 +1,7 @@
 node_modules
 dist
+.env
+example.env
 .git
 .dockerignore
 .gitignore

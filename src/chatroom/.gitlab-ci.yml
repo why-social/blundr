@@ -1,0 +1,86 @@
+stages:
+  - build
+  - push
+  - deploy
+
+variables:
+  IMAGE_NAME: "blundr/chatroom"
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_CLI_EXPERIMENTAL: enabled
+  DOCKER_BUILDKIT: 1
+
+services:
+  - docker:20.10.24-dind
+
+build:
+  stage: build
+  image: docker:20.10.24
+  tags:
+    - docker-build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main"
+      changes:
+        - src/chatroom/**/*
+  script:
+    - cd src/chatroom
+    - docker info
+    - docker buildx create --name builder --use || docker buildx use builder
+    - docker buildx inspect --bootstrap
+    - docker buildx build
+      --platform linux/amd64
+      -t $IMAGE_NAME:latest
+      --load .
+    - docker save $IMAGE_NAME:latest -o chatroom.tar
+  artifacts:
+    paths:
+      - src/chatroom/chatroom.tar
+    expire_in: 1 hour
+
+push:
+  stage: push
+  image: docker:20.10.24
+  tags:
+    - docker-build
+  dependencies:
+    - build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/chatroom/**/*
+  script:
+    - cd src/chatroom
+    - docker load -i chatroom.tar
+    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
+    - echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d | docker login -u _json_key --password-stdin https://europe-north2-docker.pkg.dev
+    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
+
+deploy:
+  stage: deploy
+  image: google/cloud-sdk:latest
+  tags:
+    - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/chatroom/**/*
+  script:
+    # Authenticate with GCP
+    - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
+    - gcloud auth activate-service-account --key-file=gcloud-key.json
+    - gcloud container clusters get-credentials main-cluster --zone europe-north2-a --project blundr
+
+    # Get external node IP
+    - NODE_EXTERNAL_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+    - export NODE_EXTERNAL_IP
+    - export IMAGE_TAG=$CI_COMMIT_SHORT_SHA
+    - 'echo "Node external IP: $NODE_EXTERNAL_IP"'
+
+    # Apply all YAMLs in k8s/ with variable substitution
+    - echo "Applying k8s/chatroom.yaml";
+    - sed -e "s|\${NODE_EXTERNAL_IP}|$NODE_EXTERNAL_IP|g" -e "s|\${IMAGE_TAG}|$IMAGE_TAG|g" "k8s/chatroom.yaml" | kubectl apply -f -;
+
+    # Restart all statefulsets and deployments
+    - echo "Restarting chatroom StatefulSet";
+      kubectl rollout restart statefulset/chatroom;
+      kubectl rollout status statefulset/chatroom --timeout=300s;
