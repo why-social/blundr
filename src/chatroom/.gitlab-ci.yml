@@ -18,6 +18,10 @@ build:
   image: docker:20.10.24
   tags:
     - docker-build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main"
+      changes:
+        - src/chatroom/**/*
   script:
     - cd src/chatroom
     - docker info
@@ -40,6 +44,10 @@ push:
     - docker-build
   dependencies:
     - build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/chatroom/**/*
   script:
     - cd src/chatroom
     - docker load -i chatroom.tar
@@ -52,6 +60,10 @@ deploy:
   image: google/cloud-sdk:latest
   tags:
     - docker
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      changes:
+        - src/chatroom/**/*
   script:
     # Authenticate with GCP
     - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
@@ -66,13 +78,13 @@ deploy:
 
     # Apply all YAMLs in k8s/ with variable substitution
     - for file in k8s/*.yaml; do
-        echo "Applying $file";
-        sed -e "s|\${NODE_EXTERNAL_IP}|$NODE_EXTERNAL_IP|g" -e "s|\${IMAGE_TAG}|$IMAGE_TAG|g" "$file" | kubectl apply -f -;
+      echo "Applying $file";
+      sed -e "s|\${NODE_EXTERNAL_IP}|$NODE_EXTERNAL_IP|g" -e "s|\${IMAGE_TAG}|$IMAGE_TAG|g" "$file" | kubectl apply -f -;
       done
 
     # Restart all statefulsets and deployments
     - for res in $(kubectl get deployments,statefulsets -n default -o name); do
-        echo "Restarting $res";
-        kubectl rollout restart $res;
-        kubectl rollout status $res;
+      echo "Restarting $res";
+      kubectl rollout restart $res;
+      kubectl rollout status $res;
       done
