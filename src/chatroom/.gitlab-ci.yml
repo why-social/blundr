@@ -1,6 +1,7 @@
 stages:
   - build
   - push
+  - deploy
 
 variables:
   IMAGE_NAME: "blundr/chatroom"
@@ -42,6 +43,36 @@ push:
   script:
     - cd src/chatroom
     - docker load -i chatroom.tar
-    - docker tag $IMAGE_NAME:latest $IMAGE_NAME:$CI_COMMIT_SHORT_SHA
+    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
     - echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d | docker login -u _json_key --password-stdin https://europe-north2-docker.pkg.dev
     - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
+
+deploy:
+  stage: deploy
+  image: google/cloud-sdk:latest
+  tags:
+    - docker
+  script:
+    # Authenticate with GCP
+    - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
+    - gcloud auth activate-service-account --key-file=gcloud-key.json
+    - gcloud container clusters get-credentials main-cluster --zone europe-north2-a --project blundr
+
+    # Get external node IP
+    - NODE_EXTERNAL_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
+    - export NODE_EXTERNAL_IP
+    - export IMAGE_TAG=$CI_COMMIT_SHORT_SHA
+    - 'echo "Node external IP: $NODE_EXTERNAL_IP"'
+
+    # Apply all YAMLs in k8s/ with variable substitution
+    - for file in k8s/*.yaml; do
+        echo "Applying $file";
+        sed -e "s|\${NODE_EXTERNAL_IP}|$NODE_EXTERNAL_IP|g" -e "s|\${IMAGE_TAG}|$IMAGE_TAG|g" "$file" | kubectl apply -f -;
+      done
+
+    # Restart all statefulsets and deployments
+    - for res in $(kubectl get deployments,statefulsets -n default -o name); do
+        echo "Restarting $res";
+        kubectl rollout restart $res;
+        kubectl rollout status $res;
+      done
