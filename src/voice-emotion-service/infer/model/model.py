@@ -84,7 +84,19 @@ class Model:
         result_df["label"] = result_df.index.map(winners)
         result_df["confidence"] = result_df.index.map(scores)
 
-        result_df["label"] = result_df["label"].fillna("unknown")
+        # === HANDLE SPECIAL CASES ===
+        silence_mask = result_df["sentence"] == ". . ."
+        result_df.loc[silence_mask, "label"] = "silence"
+        result_df.loc[silence_mask, "confidence"] = 1.0
+
+        result_df["label"] = result_df["label"].fillna("undefined")
         result_df["confidence"] = result_df["confidence"].fillna(0.0)
+
+        # === DEBUG ===
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+        #     print(f"preds_df ({preds_df.shape}):\n{preds_df}")
+        #     print(f"mean_confs ({mean_confs.shape}):\n{mean_confs}")
+        #     print(f"winners ({winners.shape}):\n{winners}")
+        #     print(f"result_df ({result_df.shape}):\n{result_df}")
 
         return result_df
