@@ -73,11 +73,8 @@ face_net = cv2.dnn.readNetFromCaffe(FACE_PROTO, FACE_MODEL)
 if MODE == "dev":
 	print("DNN face detector loaded.")
 
-def process_video(file):
-	temp_path = f"/tmp/{file.filename}"
-	with open(temp_path, "wb") as buffer:
-		buffer.write(file.file.read())
-	vidcap = cv2.VideoCapture(temp_path)
+def process_video(file_path):
+	vidcap = cv2.VideoCapture(file_path)
 	fps = vidcap.get(cv2.CAP_PROP_FPS)
 	frame_step = int(fps * PREDICTION_INTERVAL)
 	success, frame = vidcap.read()
@@ -86,6 +83,7 @@ def process_video(file):
 	log = ""
 	log += "time,emotion\n"
 	if not success:
+		vidcap.release()
 		return {"status": "error", "message": "Could not read video file."}
 	while success:
 		current_time = frame_count / fps
@@ -99,8 +97,7 @@ def process_video(file):
 		success, frame = vidcap.read()
 	
 	vidcap.release()
-	os.remove(temp_path)
-	return {"status": "processed", "message": log}
+	return log
 
 
 def get_emotion(frame):

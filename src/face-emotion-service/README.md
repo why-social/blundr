@@ -3,29 +3,21 @@
 This service provides an API endpoint to process video files and report detected face emotions.
 
 Current pretrained model: ResNet34
+Current exposed port: 42069
 
 ## API Endpoints
-- `POST /predict-face-emotion`: Endpoint to upload a video file and receive detected face emotions.
+- `POST /predict-face-emotion`: Endpoint to upload a video file and forward the emotions to the aggregator service.
   - **Parameters (Form Data)**:
 	- `file`: Video file to be processed. (mp4)
 	- `user_id`: Identifier for the user uploading the video.
 	- `session_id`: Identifier for the session.
   - **Response (JSON object)**:
-	- `user_id`: The user ID provided in the request.
-	- `session_id`: The session ID provided in the request.
-	- `result`: Detected face emotions from the video.
-	  - `status`: Status of the processing ("processed" or "error").
-	  - `message`: A string containing the list of emotions in .csv format
+	- `status`: Status of the processing (e.g., "accepted").
 
 Example Response:
 ```json
 {
-  "user_id": "user123",
-  "session_id": "session123",
-  "result": {
-	"status": "processed",
-	"message": "time,emotion\n0.00,happy\n0.50,happy\n1.00,happy\n1.50,happy\n"
-  }
+  "status": "accepted"
 }
 ```
 
@@ -34,11 +26,10 @@ Example Response:
 ### Run with Docker:
 ```bash
 docker build -t face-emotion-service .
-docker run -d -p 8000:8000 face-emotion-service
+docker run -d -p 42069:42069 face-emotion-service
 ```
 
 ### Run locally:
-
 Install dependencies:
 
 ```bash
@@ -48,7 +39,7 @@ pip install -r requirements.txt
 Run the service:
 
 ```bash
-uvicorn main:app --host localhost --port 8000
+uvicorn main:app --host localhost --port 42069
 ```
 
 ## Structure
