@@ -1,7 +1,9 @@
+import pandas as pd
+
+from fastapi import FastAPI, File, Form, UploadFile
+from io import StringIO
 from pathlib import Path
 
-from data.prediction import predictions_to_csv
-from fastapi import FastAPI, File, Form, UploadFile
 from model.model import Model
 
 app = FastAPI()
@@ -21,11 +23,23 @@ async def get_audio(
     with open(audio_path, "wb") as file:
         file.write(await audio.read())
 
-    output = model.infer(audio_path, transcript)
+    if not transcript:
+        return []
+
+    if r"\n" in transcript:
+        transcript = transcript.replace(r"\n", "\n")  # make newlines work
+
+    transcript = transcript.replace("\r", "")  # fix windows strings
+    transcript = transcript.strip()  # sanity check blank leading/trailing lines
+
+    trans_buf = StringIO(transcript)
+
+    df = pd.read_csv(trans_buf, skipinitialspace=True)
+
+    output = model.infer(audio_path, df)
 
     return {
-        "status": 200,
         "session_id": session_id,
         "user_id": user_id,
-        "predictions": predictions_to_csv(output),
+        "predictions": output.to_csv(index=False),
     }

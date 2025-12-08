@@ -4,7 +4,7 @@ from pathlib import Path
 
 @dataclass
 class TranscribedSegment:
-    audio_path: Path
+    sentence_idx: int
     start_time: float
     end_time: float
     label: str = "unknown"

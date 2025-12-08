@@ -41,8 +41,6 @@ with equal amounts of silence (to avoid mostly silent chunks at ends of sentence
 
 The endpoint returns the following response:
 
-`status`: self-explanatory
-
 `session_id`: self-explanatory
 
 `user_id`: self-explanatory
