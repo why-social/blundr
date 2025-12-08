@@ -1,0 +1,8 @@
+services:
+    ve-infer:
+        image: ve-infer
+        build: .
+        volumes:
+            - ./train/out/model.pth:/etc/model.pth:ro,z
+        ports:
+            - 42069:42069

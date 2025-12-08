@@ -1,10 +1,7 @@
-__pycache__/
-*.pyc
-build/
-dist/
-out/
-test/
-.cache/
-.backup/
-.raw_datasets/
-.venv/
+**/__pycache__/
+**/*.pyc
+**/.venv/
+**/build/
+**/dist/
+**/out/
+**/test/
