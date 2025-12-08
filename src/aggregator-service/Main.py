@@ -32,7 +32,7 @@ async def call_llm(transcription: dict, user_id: str):
     You MUST output exactly THREE sections using these delimiters:
 
     ======BEGIN_HIGHLIGHTS======
-    For each highlight, output exactly this format (KEEP THE METADATA FOR READABILITY):
+    For each highlight, output exactly this format:
     timestamp|||sentence_snippet|||description|||annotation
     Annotations can be one of: !!, !, !?, ?!, ?, ?? (following chess.com conventions)
     timestamp|||sentence_snippet|||description|||annotation
@@ -77,7 +77,8 @@ async def call_llm(transcription: dict, user_id: str):
 
     print("Decoded Output: " + decoded_output)
 
-    return f"""=====BEGIN_HIGHLIGHTS=====\n{highlights}\n=====END_HIGHLIGHTS======
+    return f"""=====BEGIN_HIGHLIGHTS=====\ntimestamp|||sentence_snippet|||description|||annotation
+    \n{highlights}\n=====END_HIGHLIGHTS======
     \n=====BEGIN_STRENGTHS======\n{strengths}\n=====END_STRENGTHS=====\n
     =====BEGIN_IMPROVEMENTS=====\n{improvements}\n=====END_IMRPOVEMENTS====="""
 
