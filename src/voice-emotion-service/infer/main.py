@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 from fastapi import FastAPI, File, Form, UploadFile
+
 from model.model import Model
 
 app = FastAPI()
@@ -10,7 +11,7 @@ model = Model(Path("/etc/model.pth"))
 
 
 @app.post("/infer")
-async def get_audio(
+async def infer(
     session_id: str = Form(...),
     user_id: str = Form(...),
     audio: UploadFile = File(...),
@@ -30,6 +31,7 @@ async def get_audio(
 
     df = pd.read_csv(StringIO(transcript), skipinitialspace=True)
     output = model.infer(audio_path, df)
+    audio_path.unlink()  # remove the audiofile
 
     return {
         "session_id": session_id,

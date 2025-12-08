@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import List
 
 import pandas as pd
 import torch
@@ -8,10 +7,10 @@ from common.config.model_config import ModelConfig
 from common.model.crnn_model import CRNNModel
 from common.utils.audio_processing import AudioProcessor
 from common.utils.transformations import standardize_length
-from data import segment
-from data.load import load_transcribed_segments
 from torch.nn.functional import softmax
 from tqdm import tqdm
+
+from data.load import load_transcribed_segments
 
 
 class Model:

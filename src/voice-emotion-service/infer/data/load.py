@@ -4,6 +4,7 @@ from typing import List
 import numpy as np
 import pandas as pd
 from common.config.dataset_config import DatasetConfig
+
 from data.segment import TranscribedSegment
 
 
@@ -15,7 +16,7 @@ def load_transcribed_segments(
     from `DatasetConfig`, and optimising for minimal padding.
     """
     assert audio_path.exists(), f"ERROR: Audio file not found: {audio_path}"
-    assert not transcript.empty, f"ERROR: Empty transcript"
+    assert not transcript.empty, "ERROR: Empty transcript"
 
     print(
         f"INFO [load_transcribed_segments()]: loaded {len(transcript.index)} transcription entries"
@@ -30,6 +31,9 @@ def load_transcribed_segments(
         duration = t_end - t_start
 
         target_sec = config.target_length
+
+        if str(row["sentence"]) == ". . .":
+            continue  # skip silences
 
         if duration <= target_sec:
             chunks.append(TranscribedSegment(idx, t_start, t_end))
