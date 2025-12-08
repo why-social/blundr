@@ -4,16 +4,19 @@ metadata:
   name: chatroom
   namespace: default
   labels:
-    app: chatroom
+    app: blundr
+    component: chatroom
 spec:
   replicas: 1  # only one pod per node for hostNetwork/Mediasoup UDP
   selector:
     matchLabels:
-      app: chatroom
+      app: blundr
+      component: chatroom
   template:
     metadata:
       labels:
-        app: chatroom
+        app: blundr
+        component: chatroom
     spec:
       hostNetwork: true  # bind container network directly to node
       dnsPolicy: ClusterFirstWithHostNet
@@ -40,7 +43,8 @@ metadata:
   name: chatroom
   namespace: default
   labels:
-    app: chatroom
+    app: blundr
+    component: chatroom
   annotations:
     cloud.google.com/neg: '{"ingress":true}'
     cloud.google.com/network-tier: Standard
@@ -53,4 +57,5 @@ spec:
     targetPort: 8081   # container port
     protocol: TCP
   selector:
-    app: chatroom
+    app: blundr
+    component: chatroom
