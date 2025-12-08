@@ -10,7 +10,7 @@ import time
 import os
 
 PREDICTION_INTERVAL = 0.5  # seconds
-VIDEO_FILE_PATH = "video.mp4"
+VIDEO_FILE_PATH = "video.webm"
 OUTPUT_VIDEO_PATH = "video_processed.mp4"
 	
 MODEL_PATH = "../models/emotion_model.pt"
@@ -121,7 +121,7 @@ def get_emotion(frame):
 
 # ---- MAIN VIDEO PROCESSING ----
 
-vidcap = cv2.VideoCapture(VIDEO_FILE_PATH)
+vidcap = cv2.VideoCapture(VIDEO_FILE_PATH, cv2.CAP_FFMPEG)
 fps = vidcap.get(cv2.CAP_PROP_FPS)
 width = int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH))
 height = int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))

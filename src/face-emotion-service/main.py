@@ -8,7 +8,7 @@ import os
 
 app = FastAPI()
 
-AGGREGATOR_URL = "http://aggregator.default.svc.cluster.local:42069/receive-result"
+AGGREGATOR_URL = os.environ.get("AGGREGATOR_URL", "http://localhost:42069/aggregator")
 TIMEOUT_FOR_AGGREGATOR_SERVICE = 10.0
 
 @app.get("/")
