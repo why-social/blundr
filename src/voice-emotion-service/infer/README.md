@@ -33,21 +33,20 @@ with equal amounts of silence (to avoid mostly silent chunks at ends of sentence
 
 `transcript`: the transcript from the transcription service, as a stringified csv
 
-- expected format: `timestamp_start,timestamp_end\n...`
+- expected format: `timestamp_start,timestamp_end,sentence\n...`
     - *the transcription service output contains more columnts, but these are the only ones used*
 - the input is expected to have no empty entries (no empty sentences/silences)
 
 ### Request
 
-The endpoint returns the following response:
-
-`status`: self-explanatory
+The endpoint returns the transcript with added columns `label` and `confidence`:
 
 `session_id`: self-explanatory
 
 `user_id`: self-explanatory
 
-`predictions`: labels for each *chunk*, as a stringified csv
+`predictions`: labels for each sentence from the transcript
 
-- format: `start_time,end_time,label,confidence\n...`
+- format: `timestamp_start,timestamp_end,sentence,label,confidence\n...`
+    - the columns are self-explanatory :)
 

@@ -1,7 +1,9 @@
+from io import StringIO
 from pathlib import Path
 
-from data.prediction import predictions_to_csv
+import pandas as pd
 from fastapi import FastAPI, File, Form, UploadFile
+
 from model.model import Model
 
 app = FastAPI()
@@ -9,7 +11,7 @@ model = Model(Path("/etc/model.pth"))
 
 
 @app.post("/infer")
-async def get_audio(
+async def infer(
     session_id: str = Form(...),
     user_id: str = Form(...),
     audio: UploadFile = File(...),
@@ -21,11 +23,18 @@ async def get_audio(
     with open(audio_path, "wb") as file:
         file.write(await audio.read())
 
-    output = model.infer(audio_path, transcript)
+    if r"\n" in transcript:
+        transcript = transcript.replace(r"\n", "\n")  # make newlines work
+
+    transcript = transcript.replace("\r", "")  # fix windows strings
+    transcript = transcript.strip()  # sanity check blank leading/trailing lines
+
+    df = pd.read_csv(StringIO(transcript), skipinitialspace=True)
+    output = model.infer(audio_path, df)
+    audio_path.unlink()  # remove the audiofile
 
     return {
-        "status": 200,
         "session_id": session_id,
         "user_id": user_id,
-        "predictions": predictions_to_csv(output),
+        "predictions": output.to_csv(index=False),
     }
