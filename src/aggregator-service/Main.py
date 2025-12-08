@@ -3,7 +3,7 @@ from aggregator import aggregate_files, extract_section_llm, User
 import httpx
 
 app = FastAPI()
-
+client = httpx.AsyncClient(timeout=None)
 # Structure of the json: {session_id1: {user_id1: {faceFile, transcript}, user_id2: {faceFile, transcript}}}
 session_id_tracker = {}
 final_agg_output = None
@@ -11,6 +11,8 @@ final_agg_output = None
 session_aggregate_cache = {}
 
 async def call_llm(transcription: dict, user_id: str):
+    global client
+
     prompt = f"""
     You are an expert dating coach.
 
@@ -25,12 +27,20 @@ async def call_llm(transcription: dict, user_id: str):
 
     Do NOT output JSON.
 
+    Annotation explanation:
+    - ??: Indicates a blunder, a critically bad mistake
+    - ?: A normal mistake
+    - ?!: Quoestionable move, but may have some merit or is difficult to refute
+    - !?: Could be a risky, an interesting but not the best move to be made
+    - !: Indicates a good move, especially one that is suprising or requires particular skill
+    - !!: Used for outstaning or particularly strong moves
+
     You MUST output exactly THREE sections using these delimiters:
 
     ======BEGIN_HIGHLIGHTS======
     For each highlight, output exactly this format:
     timestamp|||sentence_snippet|||description|||annotation
-    Annotations can be one of: !!, !, !?, ?!, ?, ?? (following chess.com conventions)
+    Annotations can be one of: !!, !, !?, ?!, ?, ??
     timestamp|||sentence_snippet|||description|||annotation
     ======END_HIGHLIGHTS======
 
@@ -51,16 +61,16 @@ async def call_llm(transcription: dict, user_id: str):
     - Use the delimiters EXACTLY as shown
     - If unsure, make a reasonable assumption
     """
-    async with httpx.AsyncClient(timeout=None) as client:
-        response = await client.post(
-            "http://localhost:11434/api/generate",
-            json={
-                "model": "qwen2.5:7b", 
-                "prompt": prompt, 
-                "stream": False,
-                "temperature": 0.0,
-                }
-            )
+
+    response = await client.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": "qwen2.5:7b", 
+            "prompt": prompt, 
+            "stream": False,
+            "temperature": 0.0,
+            }
+        )
 
     model_output = response.text.strip()
     
@@ -86,7 +96,7 @@ async def analyze_session(session_id: str, user_id: str):
     llm_output = await call_llm(aggregated_json, user_id=user_id)
 
     session_aggregate_cache.pop(session_id)
-    
+
     return {
         "session_id": session_id,
         "requested_by": user_id,
