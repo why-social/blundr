@@ -8,7 +8,7 @@ Current exposed port: 42069
 ## API Endpoints
 - `POST /predict-face-emotion`: Endpoint to upload a video file and forward the emotions to the aggregator service.
   - **Parameters (Form Data)**:
-	- `file`: Video file to be processed. (mp4)
+	- `file`: Video file to be processed. (webm format)
 	- `user_id`: Identifier for the user uploading the video.
 	- `session_id`: Identifier for the session.
   - **Response (JSON object)**:

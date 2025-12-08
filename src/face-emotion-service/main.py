@@ -46,7 +46,8 @@ async def process_video_endpoint(
 	file: UploadFile = File(...)
 ):
 	try:
-		with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp:
+		# Save the uploaded file to a temporary location
+		with tempfile.NamedTemporaryFile(delete=False, suffix=".webm") as tmp:
 			shutil.copyfileobj(file.file, tmp)
 			tmp_path = tmp.name
 
