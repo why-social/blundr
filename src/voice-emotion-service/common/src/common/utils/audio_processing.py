@@ -22,9 +22,9 @@ class AudioProcessor:
         waveform, sr = torchaudio.load(path)
         return self.waveform_to_spec(waveform, sr)
 
-    def segment_to_spec(self, segment) -> torch.Tensor:
+    def segment_to_spec(self, audio_path: Path, segment) -> torch.Tensor:
         """Partially loads an audio file and returns its spectrogram"""
-        info = sf.info(str(segment.audio_path))
+        info = sf.info(str(audio_path))
         native_sr = info.samplerate
         total_frames = info.frames
         
@@ -55,9 +55,7 @@ class AudioProcessor:
             
         # Load the Context Window
         waveform, sr = torchaudio.load(
-            str(segment.audio_path),
-            frame_offset=new_start,
-            num_frames=new_end - new_start
+            audio_path, frame_offset=new_start, num_frames=new_end - new_start
         )
         
         # Apply padding if we hit the edge of the file

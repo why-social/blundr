@@ -1,80 +1,42 @@
-import argparse
+from io import StringIO
 from pathlib import Path
 
 import pandas as pd
 import torch
 import torch.nn.functional as F
+from fastapi import FastAPI, File, Form, UploadFile
 
-# --- IMPORTS FROM COMMON SHARED LIB ---
-from common.config.dataset_config import DatasetConfig
-from common.config.model_config import ModelConfig
-from common.model.crnn_model import CRNNModel
-from common.utils.audio_processing import AudioProcessor
-from common.utils.transformations import standardize_length
-from data.load import load_transcribed_segments
-from tqdm import tqdm
+from model.model import Model
 
-SAVE_PATH = Path("out/emotion_predictions.csv")
+app = FastAPI()
+model = Model(Path("/etc/model.pth"))
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("model_path", type=str)
-    parser.add_argument("--audio_path", type=str, required=True)
-    parser.add_argument("--trans_path", type=str, required=True)
-    parser.add_argument("--out_path", type=str)
-    args = parser.parse_args()
 
-    if args.out_path is not None:
-        SAVE_PATH = Path(args.out_path)
+@app.post("/infer")
+async def infer(
+    session_id: str = Form(...),
+    user_id: str = Form(...),
+    audio: UploadFile = File(...),
+    transcript: str = Form(...),
+):
+    audio_path = Path(f"/tmp/Sesh_id:{session_id}user_id:{user_id}.wav")
 
-    model_config = ModelConfig()
-    data_config = DatasetConfig()
-    processor = AudioProcessor(data_config)
+    # TODO: avoid writing to disk and operate in-memory?
+    with open(audio_path, "wb") as file:
+        file.write(await audio.read())
 
-    model = CRNNModel(
-        model_config,
-        n_mels=data_config.n_mels,
-        num_classes=data_config.n_classes,
-    ).to(model_config.device)
+    if r"\n" in transcript:
+        transcript = transcript.replace(r"\n", "\n")  # make newlines work
 
-    model.load_state_dict(torch.load(args.model_path, map_location=model_config.device))
-    model.eval()
+    transcript = transcript.replace("\r", "")  # fix windows strings
+    transcript = transcript.strip()  # sanity check blank leading/trailing lines
 
-    segments = load_transcribed_segments(
-        Path(args.trans_path), Path(args.audio_path), data_config
-    )
-    print(f"Split into {len(segments)} chunks for inference.")
+    df = pd.read_csv(StringIO(transcript), skipinitialspace=True)
+    output = model.infer(audio_path, df)
+    audio_path.unlink()  # remove the audiofile
 
-    results = []
-    with torch.no_grad():
-        for seg in tqdm(segments, desc="Predicting"):
-            spec = processor.segment_to_spec(seg)  # load chunk (<= target_len)
-            spec = standardize_length(
-                spec, data_config.target_frames, mode="end"
-            )  # pad if needed
-
-            # Predict
-            spec = spec.unsqueeze(0).to(model_config.device)
-
-            outputs = model(spec)
-            probs = F.softmax(outputs, dim=1)
-            confidence, pred_idx = torch.max(probs, 1)
-
-            emotion = data_config.label_map_reverse.get(pred_idx.item())
-
-            if emotion is None:
-                emotion = "unknown"
-
-            results.append(
-                {
-                    "file": seg.audio_path.name,
-                    "start": f"{seg.start_time:.2f}",
-                    "end": f"{seg.end_time:.2f}",
-                    "duration": f"{seg.duration:.2f}",
-                    "emotion": emotion,
-                    "confidence": confidence.item(),
-                }
-            )
-
-    pd.DataFrame(results).to_csv(str(SAVE_PATH), index=False)
-    print(f"Saved to {SAVE_PATH}")
+    return {
+        "session_id": session_id,
+        "user_id": user_id,
+        "predictions": output.to_csv(index=False),
+    }

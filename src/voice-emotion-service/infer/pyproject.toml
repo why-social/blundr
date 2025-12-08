@@ -13,6 +13,8 @@ dependencies = [
     "tqdm>=4.67.1",
     "soundfile>=0.13.1",
     "librosa>=0.11.0",
+    "fastapi[standard]>=0.124.0",
+    "python-multipart>=0.0.20",
 ]
 
 [tool.uv.sources]
