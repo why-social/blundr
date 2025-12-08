@@ -1,9 +1,6 @@
-from fastapi import FastAPI, Form, UploadFile, File
-from aggregator import aggregate_files, extract_section_llm
-import requests
+from fastapi import FastAPI, Form, UploadFile, File, HTTPException
+from aggregator import aggregate_files, extract_section_llm, User
 import httpx
-import json
-import io
 
 app = FastAPI()
 
@@ -73,16 +70,13 @@ async def call_llm(transcription: dict, user_id: str):
     strengths = extract_section_llm(decoded_output, "STRENGTHS") 
     improvements = extract_section_llm(decoded_output, "IMPROVEMENTS") 
     
-
-    print("Decoded Output: " + decoded_output)
-
     return f"""=====BEGIN_HIGHLIGHTS=====\ntimestamp|||sentence_snippet|||description|||annotation
     \n{highlights}\n=====END_HIGHLIGHTS======
     \n=====BEGIN_STRENGTHS======\n{strengths}\n=====END_STRENGTHS=====\n
     =====BEGIN_IMPROVEMENTS=====\n{improvements}\n=====END_IMRPOVEMENTS====="""
 
 
-@app.get("/analyse")
+@app.get("/analyze")
 async def analyze_session(session_id: str, user_id: str):
     if session_id not in session_id_tracker:
         raise HTTPException(404, "Session not found")
@@ -91,8 +85,9 @@ async def analyze_session(session_id: str, user_id: str):
 
     llm_output = await call_llm(aggregated_json, user_id=user_id)
 
+    session_aggregate_cache.pop(session_id)
+    
     return {
-        "status": 200,
         "session_id": session_id,
         "requested_by": user_id,
         "analysis": llm_output
@@ -128,23 +123,17 @@ async def get_files(
     
     session_id_tracker[session_id][uuid]["userId"] = uuid
     session_users = session_id_tracker[session_id]
-    print(f"Session users: {session_users}")
 
     if len(session_users) == 2 and all(user.get("face") and user.get("voice") for user in session_users.values()):
         print("Processing...")
         user_list = list(session_users.items())
-        final_agg_output = aggregate_files(
-            user_1=user_list[0][1],
-            user_1_id=user_list[0][0], 
-            user_2=user_list[1][1], 
-            user_2_id=user_list[1][0], 
-            session_id=session_id
-            )
+        user_1 = User(user_list[0][0], user_list[0][1])
+        user_2 = User(user_list[1][0], user_list[1][1])
+
+        final_agg_output = aggregate_files(user_1=user_1, user_2=user_2, session_id=session_id)
+        
         session_aggregate_cache[session_id] = final_agg_output
-        return {
-            "status": 204,
-            "data": final_agg_output
-        }
+        return {"data": final_agg_output}
     
     return {"status": "waiting for other part(s)"}
     
