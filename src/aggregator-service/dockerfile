@@ -12,12 +12,12 @@ COPY . .
 
 ENV OLLAMA_USE_GPU=1
 
-EXPOSE 11434 8000
+EXPOSE 11434 42069
 
 CMD sh -c "\
     ollama serve & \
     sleep 5 && \
     ollama pull qwen2.5:7b && \
-    exec uvicorn Main:app --host 0.0.0.0 --port 8000 \
+    exec uvicorn Main:app --host 0.0.0.0 --port 42069 \
 "
 

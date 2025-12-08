@@ -1,6 +1,5 @@
 from fastapi import FastAPI, Form, UploadFile, File
-from aggregator import aggregate_files
-from utils import extract_section_llm
+from aggregator import aggregate_files, extract_section_llm
 import requests
 import httpx
 import json
