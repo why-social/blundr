@@ -13,9 +13,6 @@ RUN apt-get update && \
 WORKDIR /usr/src/chatroom
 COPY . .
 
-ARG MEDIASOUP_ANNOUNCED_IP
-ENV MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
-
 RUN npm install
 RUN npm run build
 

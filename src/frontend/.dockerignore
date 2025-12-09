@@ -1,0 +1,10 @@
+node_modules
+.next
+.env
+example.env
+.git
+.dockerignore
+.gitignore
+npm-debug.log
+next-env.d.ts
+Dockerfile
