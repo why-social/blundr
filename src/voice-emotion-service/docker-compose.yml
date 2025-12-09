@@ -6,3 +6,11 @@ services:
             - ./train/out/model.pth:/etc/model.pth:ro,z
         ports:
             - 42069:42069
+        deploy:
+            resources:
+                reservations:
+                    devices:
+                        - driver: nvidia
+                          count: all
+                          capabilities:
+                              - gpu
