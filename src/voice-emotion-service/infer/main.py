@@ -5,6 +5,7 @@ import pandas as pd
 from fastapi import FastAPI, File, Form, UploadFile
 
 from model.model import Model
+from model.speech_recognition import transcribe_audio
 
 app = FastAPI()
 model = Model(Path("/etc/model.pth"))
@@ -15,13 +16,14 @@ async def infer(
     session_id: str = Form(...),
     user_id: str = Form(...),
     audio: UploadFile = File(...),
-    transcript: str = Form(...),
 ):
     audio_path = Path(f"/tmp/Sesh_id:{session_id}user_id:{user_id}.wav")
 
     # TODO: avoid writing to disk and operate in-memory?
     with open(audio_path, "wb") as file:
         file.write(await audio.read())
+
+    transcript = transcribe_audio()
 
     if r"\n" in transcript:
         transcript = transcript.replace(r"\n", "\n")  # make newlines work
