@@ -5,6 +5,7 @@ stages:
 
 variables:
   IMAGE_NAME: "blundr/ve-infer"
+  DOCKER_HOST: unix:///var/run/docker.sock
   DOCKER_TLS_CERTDIR: ""
   DOCKER_CLI_EXPERIMENTAL: enabled
   DOCKER_BUILDKIT: 1
