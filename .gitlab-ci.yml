@@ -1,2 +1,3 @@
 include:
   - local: "src/chatroom/.gitlab-ci.yml"
+  - local: "src/voice-emotion-service/.gitlab-ci.yml"
