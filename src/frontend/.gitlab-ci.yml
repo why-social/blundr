@@ -1,0 +1,81 @@
+variables:
+  IMAGE_NAME: "blundr/frontend"
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_CLI_EXPERIMENTAL: enabled
+  DOCKER_BUILDKIT: 1
+
+services:
+  - docker:20.10.24-dind
+
+frontend-build:
+  stage: build
+  image: docker:20.10.24
+  tags:
+    - docker-build
+  rules:
+    # - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main"
+    - changes:
+        - src/frontend/**/*
+  script:
+    - cd src/frontend
+    - docker info
+    - docker buildx create --name builder --use || docker buildx use builder
+    - docker buildx inspect --bootstrap
+    - docker buildx build
+      --platform linux/amd64
+      --build-arg NEXT_PUBLIC_CHATROOM_URL=https://34.2.61.139
+      --build-arg NEXT_PUBLIC_CHATROOM_WS_URL=ws://34.2.61.139
+      -t $IMAGE_NAME:latest
+      --load .
+    - docker save $IMAGE_NAME:latest -o frontend.tar
+  artifacts:
+    paths:
+      - src/frontend/frontend.tar
+    expire_in: 1 hour
+
+frontend-push:
+  stage: push
+  image: docker:20.10.24
+  tags:
+    - docker-build
+  dependencies:
+    - frontend-build
+  rules:
+    # - if: '$CI_COMMIT_BRANCH == "main"'
+    - changes:
+        - src/frontend/**/*
+  script:
+    - cd src/frontend
+    - docker load -i frontend.tar
+    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA
+    - echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d | docker login -u _json_key --password-stdin https://europe-north2-docker.pkg.dev
+    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA
+
+frontend-deploy:
+  stage: deploy
+  image: google/cloud-sdk:latest
+  tags:
+    - docker
+  rules:
+    # - if: '$CI_COMMIT_BRANCH == "main"'
+    - changes:
+        - src/frontend/**/*
+  script:
+    - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
+    - gcloud auth activate-service-account --key-file=gcloud-key.json
+    # domain mappings are not allowed on europe-north2
+    # for now, deploy to europe-north1
+    # TODO: create another registry for this?
+    - gcloud run deploy frontend
+      --image "europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA"
+      --project blundr
+      --region europe-north1
+      --platform managed
+      --allow-unauthenticated
+      --cpu 1
+      --memory 512Mi
+      --min-instances 0
+      --max-instances 1
+      --cpu-throttling
+      --port 8000

@@ -1,2 +1,8 @@
+stages:
+  - build
+  - push
+  - deploy
+
 include:
   - local: "src/chatroom/.gitlab-ci.yml"
+  - local: "src/frontend/.gitlab-ci.yml"
