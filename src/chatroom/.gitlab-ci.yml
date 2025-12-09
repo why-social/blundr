@@ -14,8 +14,8 @@ chatroom-build:
   tags:
     - docker-build
   rules:
-    - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main"
-      changes:
+    # - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main"
+    - changes:
         - src/chatroom/**/*
   script:
     - cd src/chatroom
@@ -40,14 +40,16 @@ chatroom-push:
   dependencies:
     - chatroom-build
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      changes:
+    # - if: '$CI_COMMIT_BRANCH == "main"'
+    - changes:
         - src/chatroom/**/*
   script:
     - cd src/chatroom
     - docker load -i chatroom.tar
+    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:latest
     - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
     - echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d | docker login -u _json_key --password-stdin https://europe-north2-docker.pkg.dev
+    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:latest
     - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
 
 chatroom-deploy:
@@ -56,26 +58,14 @@ chatroom-deploy:
   tags:
     - docker
   rules:
-    - if: '$CI_COMMIT_BRANCH == "main"'
-      changes:
+    # - if: '$CI_COMMIT_BRANCH == "main"'
+    - changes:
         - src/chatroom/**/*
   script:
-    # Authenticate with GCP
     - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
     - gcloud auth activate-service-account --key-file=gcloud-key.json
-    - gcloud container clusters get-credentials main-cluster --zone europe-north2-a --project blundr
-
-    # Get external node IP
-    - NODE_EXTERNAL_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')
-    - export NODE_EXTERNAL_IP
-    - export IMAGE_TAG=$CI_COMMIT_SHORT_SHA
-    - 'echo "Node external IP: $NODE_EXTERNAL_IP"'
-
-    # Apply all YAMLs in k8s/ with variable substitution
-    - echo "Applying k8s/chatroom.yaml";
-    - sed -e "s|\${NODE_EXTERNAL_IP}|$NODE_EXTERNAL_IP|g" -e "s|\${IMAGE_TAG}|$IMAGE_TAG|g" "k8s/chatroom.yaml" | kubectl apply -f -;
-
-    # Restart all statefulsets and deployments
-    - echo "Restarting chatroom StatefulSet";
-      kubectl rollout restart statefulset/chatroom;
-      kubectl rollout status statefulset/chatroom --timeout=300s;
+    - gcloud compute ssh chatroom
+      --zone=europe-north2-b
+      --project=blundr
+      --strict-host-key-checking=no
+      --command "sudo /deploy/deploy.sh"

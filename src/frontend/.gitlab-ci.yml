@@ -24,8 +24,8 @@ frontend-build:
     - docker buildx inspect --bootstrap
     - docker buildx build
       --platform linux/amd64
-      --build-arg CHATROOM_URL=http://34.2.61.139
-      --build-arg CHATROOM_WS_URL=ws://34.2.61.139
+      --build-arg CHATROOM_URL=https://$CHATROOM_IP
+      --build-arg CHATROOM_WS_URL=wss://$CHATROOM_IP
       -t $IMAGE_NAME:latest
       --load .
     - docker save $IMAGE_NAME:latest -o frontend.tar
@@ -64,9 +64,6 @@ frontend-deploy:
   script:
     - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
     - gcloud auth activate-service-account --key-file=gcloud-key.json
-    # domain mappings are not allowed on europe-north2
-    # for now, deploy to europe-north1
-    # TODO: create another registry for this?
     - gcloud run deploy frontend
       --image "europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA"
       --project blundr

@@ -2,6 +2,7 @@ node_modules
 dist
 .env
 example.env
+deploy
 .git
 .dockerignore
 .gitignore
