@@ -76,11 +76,11 @@ deploy:
     - export IMAGE_TAG=$CI_COMMIT_SHORT_SHA
     - 'echo "Node external IP: $NODE_EXTERNAL_IP"'
 
-    # Apply all YAMLs in k8s/ with variable substitution
-    - echo "Applying k8s/chatroom.yaml";
-    - sed -e "s|\${NODE_EXTERNAL_IP}|$NODE_EXTERNAL_IP|g" -e "s|\${IMAGE_TAG}|$IMAGE_TAG|g" "k8s/chatroom.yaml" | kubectl apply -f -;
+    # Update chatroom image in StatefulSet
+    - kubectl set image statefulset/chatroom chatroom=europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$IMAGE_TAG
 
-    # Restart all statefulsets and deployments
-    - echo "Restarting chatroom StatefulSet";
-      kubectl rollout restart statefulset/chatroom;
-      kubectl rollout status statefulset/chatroom --timeout=300s;
+    # Set MEDIASOUP_ANNOUNCED_IP environment variable in chatroom StatefulSet
+    - kubectl set env statefulset/chatroom MEDIASOUP_ANNOUNCED_IP="$NODE_EXTERNAL_IP"
+
+    # Wait for rollout
+    - kubectl rollout status statefulset/chatroom --timeout=300s;
