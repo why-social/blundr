@@ -7,7 +7,7 @@ from pandas import DataFrame
 
 MIN_PAUSE = 0.2
 SILENCE_TOKEN = ". . ."
-model = ws.load_model("base", device="gpu")
+model = ws.load_model("base", device="cpu")
 
 
 def transcribe_audio(audio_path: Path) -> DataFrame:
