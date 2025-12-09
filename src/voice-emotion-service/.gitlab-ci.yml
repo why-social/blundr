@@ -17,7 +17,7 @@ build:
   stage: build
   image: docker:20.10.24
   tags:
-    - docker-build
+    - local
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event" || $CI_COMMIT_BRANCH == "main"
       changes:
