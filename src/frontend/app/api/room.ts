@@ -5,7 +5,12 @@ export type WSHandler = {
 };
 
 export function init(handler: WSHandler) {
-  const WS_URL = `${window.location.protocol === "https:" ? "wss" : "ws"}://${window.location.host}/ws`;
+  const WS_URL = process.env.NEXT_PUBLIC_CHATROOM_WS_URL;
+
+  if (!WS_URL) {
+    throw Error("NEXT_PUBLIC_CHATROOM_WS_URL is not provided.");
+  }
+
   const ws = new WebSocket(WS_URL);
 
   const cleanup = () => {
