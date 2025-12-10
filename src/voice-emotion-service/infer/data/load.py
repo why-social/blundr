@@ -20,7 +20,6 @@ def load_transcribed_segments(
     print(
         f"INFO [load_transcribed_segments()]: loaded {len(transcript.index)} transcription entries"
     )
-    print(transcript.head())
     chunks = []
 
     # Iterate through every speaking turn

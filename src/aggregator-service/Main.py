@@ -112,7 +112,7 @@ async def get_files(
     session_id: str = Form(...),
     uuid: str = Form(...),
     fe_text: str | None = Form(None),
-    ve_text: UploadFile | None = File(None)
+    ve_text: str | None = Form(None)
     ):
     
     print(f"Session: {session_id}")
@@ -126,10 +126,7 @@ async def get_files(
     if fe_text is not None and fe_text != "":
         session_id_tracker[session_id][uuid]["face"] = fe_text
     if ve_text is not None:
-        raw_file = await ve_text.read()
-        content = raw_file.decode("utf-8")
-
-        session_id_tracker[session_id][uuid]["voice"] = content
+        session_id_tracker[session_id][uuid]["voice"] = fe_text
     
     session_id_tracker[session_id][uuid]["userId"] = uuid
     session_users = session_id_tracker[session_id]
