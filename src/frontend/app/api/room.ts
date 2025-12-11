@@ -29,7 +29,12 @@ export function init(handler: WSHandler) {
 
     switch (message.type) {
       case "id": {
-        await handler.onConnected(message.clientId);
+        try {
+          await handler.onConnected(message.clientId);
+        } catch {
+          cleanup();
+          return;
+        }
 
         ws.send(
           JSON.stringify({
@@ -42,7 +47,12 @@ export function init(handler: WSHandler) {
       }
 
       case "match": {
-        await handler.onMatch(message.data.clientId, message.data.sessionId);
+        try {
+          await handler.onMatch(message.data.clientId, message.data.sessionId);
+        } catch {
+          cleanup();
+          return;
+        }
 
         break;
       }

@@ -23,9 +23,11 @@ export default function Chat() {
     setup,
     isQueuing,
     sessionId: sessionIdRef,
+    clientId: clientIdRef,
+    error: mediasoupError,
   } = useMediaSoup(localVideoRef, remoteVideoRef, () => {
-    if (sessionIdRef.current && !isQueuing) {
-      replaceUrl(`/analyze/${sessionIdRef.current}`);
+    if (clientIdRef.current && sessionIdRef.current && !isQueuing) {
+      replaceUrl(`/analyze/${sessionIdRef.current}/${clientIdRef.current}`);
     } else {
       replaceUrl("/");
     }
@@ -70,8 +72,10 @@ export default function Chat() {
         ref={localVideoRef}
         pending={isQueuing}
         onEndCall={() => {
-          if (sessionIdRef.current && !isQueuing) {
-            replaceUrl(`/analyze/${sessionIdRef.current}`);
+          if (clientIdRef.current && sessionIdRef.current && !isQueuing) {
+            replaceUrl(
+              `/analyze/${sessionIdRef.current}/${clientIdRef.current}`,
+            );
           } else {
             replaceUrl("/");
           }
@@ -87,9 +91,9 @@ export default function Chat() {
         />
       )}
 
-      {permissionError && (
+      {(permissionError || mediasoupError) && (
         <ErrorDialog
-          message={permissionError}
+          message={permissionError ?? mediasoupError}
           onReturn={() => replaceUrl("/")}
         />
       )}
@@ -126,12 +130,12 @@ function ErrorDialog({
   message,
   onReturn,
 }: {
-  message: string;
+  message: string | null;
   onReturn: () => void;
 }) {
   return (
     <div className="fixed top-0 left-0 z-50 flex h-full w-full flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-      <p className="mb-4">{message}</p>
+      <p className="mb-4">{message ?? "Something went wrong"}</p>
       <Button onClick={onReturn}>Return Home</Button>
     </div>
   );
