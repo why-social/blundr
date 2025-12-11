@@ -1,0 +1,23 @@
+FROM python:3.11-slim
+
+WORKDIR /src/aggregator-service
+
+RUN apt-get update && apt-get install build-essential -y curl ca-certificates && \
+    curl -fsSL https://ollama.com/install.sh | sh && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir fastapi uvicorn requests pandas python-multipart httpx
+
+COPY . .
+
+ENV OLLAMA_USE_GPU=1
+
+EXPOSE 11434 42069
+
+CMD sh -c "\
+    ollama serve & \
+    sleep 5 && \
+    ollama pull qwen2.5:7b && \
+    exec uvicorn Main:app --host 0.0.0.0 --port 42069 \
+"
+
