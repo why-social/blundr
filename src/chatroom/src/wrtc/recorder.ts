@@ -1,4 +1,4 @@
-import { spawn } from "child_process";
+import { ChildProcess, spawn } from "child_process";
 import {
   Router,
   Producer,
@@ -11,12 +11,12 @@ import path from "path";
 import { transports } from "./mediasoup.js";
 import { getFreeUdpPort } from "../utils/ports.js";
 import { generateSDP } from "../utils/sdp.js";
+import { uploadForAnalysis } from "../analysis/upload.js";
 
 export type RecorderEntry = {
   ffmpeg: ReturnType<typeof spawn>;
   consumer: Consumer;
   transport: PlainTransport;
-  file: string;
   sdpPath: string;
 };
 
@@ -70,8 +70,8 @@ async function createProducerRecorder(
   const baseDir = path.join("recordings", sessionId, clientId);
   fs.mkdirSync(baseDir, { recursive: true });
 
-  const rtpPort = await getFreeUdpPort();
-  const rtcpPort = await getFreeUdpPort();
+  const rtpPort = await getFreeUdpPort({ evenOnly: true });
+  const rtcpPort = rtpPort + 1;
 
   const plainTransport = await router.createPlainTransport({
     listenIp: "127.0.0.1",
@@ -79,16 +79,17 @@ async function createProducerRecorder(
     comedia: false,
   });
 
-  await plainTransport.connect({
-    ip: "127.0.0.1",
-    port: rtpPort,
-    rtcpPort,
-  });
-
   const consumer = await plainTransport.consume({
     producerId: producer.id,
     rtpCapabilities: router.rtpCapabilities,
     paused: false,
+  });
+  await consumer.resume();
+
+  await plainTransport.connect({
+    ip: "127.0.0.1",
+    port: rtpPort,
+    rtcpPort,
   });
 
   // an SDP file is needed for ffmpeg to be able to
@@ -98,17 +99,35 @@ async function createProducerRecorder(
 
   fs.writeFileSync(sdpPath, sdp);
 
-  const file = path.join(baseDir, `${kind}.webm`);
+  let file: string;
+  let ffmpegArgs: string[];
 
-  const ffmpegArgs = [
-    "-protocol_whitelist",
-    "file,udp,rtp",
-    "-i",
-    sdpPath,
-    "-c",
-    "copy",
-    file,
-  ];
+  if (kind === "audio") {
+    file = path.join(baseDir, `${kind}.wav`);
+    ffmpegArgs = [
+      "-protocol_whitelist",
+      "file,udp,rtp",
+      "-i",
+      sdpPath,
+      "-c:a",
+      "pcm_s16le",
+      "-vn",
+      file,
+    ];
+  } else {
+    file = path.join(baseDir, `${kind}.webm`);
+    ffmpegArgs = [
+      "-protocol_whitelist",
+      "file,udp,rtp",
+      "-err_detect",
+      "ignore_err",
+      "-i",
+      sdpPath,
+      "-c",
+      "copy",
+      file,
+    ];
+  }
 
   console.log(`Starting ffmpeg: ${file}`);
   const ffmpeg = spawn("ffmpeg", ffmpegArgs);
@@ -145,9 +164,32 @@ async function createProducerRecorder(
     } catch (error) {
       console.warn(`Could not delete SDP: ${sdpPath}`, error);
     }
+
+    if (!fs.existsSync(file)) {
+      console.error(`Skipping analysis — file does not exist: ${file}`);
+      return;
+    }
+
+    uploadForAnalysis({
+      sessionId,
+      clientId,
+      file,
+      kind,
+    }).finally(() => {
+      fs.unlink(file, (error) => {
+        if (error) {
+          console.error(`Failed to delete file ${file}`, error);
+        }
+      });
+    });
   });
 
-  return { ffmpeg, consumer, transport: plainTransport, file, sdpPath };
+  return {
+    ffmpeg,
+    consumer,
+    transport: plainTransport,
+    sdpPath,
+  };
 }
 
 export function stopSessionRecording(sessionId: string) {
@@ -163,7 +205,7 @@ export function stopSessionRecording(sessionId: string) {
 
   for (const { ffmpeg, consumer, transport } of list) {
     try {
-      ffmpeg.kill("SIGINT");
+      gracefulStop(ffmpeg);
     } catch (error) {
       console.error("Error killing ffmpeg:", error);
     }
@@ -186,4 +228,32 @@ export function stopSessionRecording(sessionId: string) {
   }
 
   activeRecordings.delete(sessionId);
+}
+
+async function gracefulStop(ffmpeg: ChildProcess) {
+  return new Promise<void>((resolve) => {
+    const killTimer = setTimeout(() => {
+      if (!ffmpeg.killed) {
+        try {
+          ffmpeg.kill("SIGTERM");
+        } catch (error) {
+          console.warn(
+            "Failed to kill FFmpeg (it might already be closed):",
+            error
+          );
+        }
+      }
+    }, 500);
+
+    ffmpeg.once("close", () => {
+      clearTimeout(killTimer);
+      resolve();
+    });
+
+    try {
+      ffmpeg.stdin?.write("q");
+    } catch (error) {
+      console.warn("Failed to send 'q' to FFmpeg stdin:", error);
+    }
+  });
 }
