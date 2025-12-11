@@ -26,6 +26,8 @@ spec:
           env:
             - name: AGGREGATOR_URL
               value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator"
+            - name: OLLAMA_BASE
+              value: "https://ollama.max-orlen.com"
 ---
 apiVersion: v1
 kind: Service

@@ -1,6 +1,9 @@
 from fastapi import FastAPI, Form, UploadFile, File, HTTPException
 from aggregator import aggregate_files, extract_section_llm, User
 import httpx
+import os
+
+OLLAMA_BASE = os.environ.get("OLLAMA_BASE", "http://localhost:11434")
 
 app = FastAPI()
 client = httpx.AsyncClient(timeout=None)
@@ -63,7 +66,7 @@ async def call_llm(transcription: dict, user_id: str):
     """
 
     response = await client.post(
-        "http://localhost:11434/api/generate",
+        OLLAMA_BASE + "/api/generate",
         json={
             "model": "qwen2.5:7b", 
             "prompt": prompt, 
@@ -102,9 +105,6 @@ async def analyze_session(session_id: str, user_id: str):
         "requested_by": user_id,
         "analysis": llm_output
     }
-
-    
-
 
 
 @app.post("/aggregator")
