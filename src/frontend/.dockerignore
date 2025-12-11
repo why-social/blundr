@@ -1,11 +1,10 @@
 node_modules
-dist
+.next
 .env
 example.env
-deploy
 .git
 .dockerignore
 .gitignore
-recordings
 npm-debug.log
+next-env.d.ts
 Dockerfile

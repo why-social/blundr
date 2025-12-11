@@ -1,5 +1,5 @@
 variables:
-  IMAGE_NAME: "blundr/chatroom"
+  IMAGE_NAME: "blundr/frontend"
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_CLI_EXPERIMENTAL: enabled
@@ -8,7 +8,7 @@ variables:
 services:
   - docker:20.10.24-dind
 
-chatroom-build:
+frontend-build:
   stage: build
   image: docker:20.10.24
   tags:
@@ -18,44 +18,44 @@ chatroom-build:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
-        - src/chatroom/**/*
+        - src/frontend/**/*
   script:
-    - cd src/chatroom
+    - cd src/frontend
     - docker info
     - docker buildx create --name builder --use || docker buildx use builder
     - docker buildx inspect --bootstrap
     - docker buildx build
       --platform linux/amd64
+      --build-arg CHATROOM_URL=https://$CHATROOM_IP
+      --build-arg CHATROOM_WS_URL=wss://$CHATROOM_IP
       -t $IMAGE_NAME:latest
       --load .
-    - docker save $IMAGE_NAME:latest -o chatroom.tar
+    - docker save $IMAGE_NAME:latest -o frontend.tar
   artifacts:
     paths:
-      - src/chatroom/chatroom.tar
+      - src/frontend/frontend.tar
     expire_in: 1 hour
 
-chatroom-push:
+frontend-push:
   stage: push
   image: docker:20.10.24
   tags:
     - docker-build
   dependencies:
-    - chatroom-build
+    - frontend-build
   rules:
     - if: "$CI_COMMIT_TAG =~ /^test/"
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
-        - src/chatroom/**/*
+        - src/frontend/**/*
   script:
-    - cd src/chatroom
-    - docker load -i chatroom.tar
-    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:latest
-    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
+    - cd src/frontend
+    - docker load -i frontend.tar
+    - docker tag $IMAGE_NAME:latest europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA
     - echo "$GCP_SERVICE_ACCOUNT_KEY" | base64 -d | docker login -u _json_key --password-stdin https://europe-north2-docker.pkg.dev
-    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:latest
-    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:$CI_COMMIT_SHORT_SHA
+    - docker push europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA
 
-chatroom-deploy:
+frontend-deploy:
   stage: deploy
   image: google/cloud-sdk:latest
   tags:
@@ -64,12 +64,19 @@ chatroom-deploy:
     - if: "$CI_COMMIT_TAG =~ /^test/"
     - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
-        - src/chatroom/**/*
+        - src/frontend/**/*
   script:
     - echo $GCP_SERVICE_ACCOUNT_KEY | base64 -d > gcloud-key.json
     - gcloud auth activate-service-account --key-file=gcloud-key.json
-    - gcloud compute ssh chatroom
-      --zone=europe-north2-b
-      --project=blundr
-      --strict-host-key-checking=no
-      --command "sudo /deploy/deploy.sh"
+    - gcloud run deploy frontend
+      --image "europe-north2-docker.pkg.dev/blundr/blundr-repo/frontend:$CI_COMMIT_SHORT_SHA"
+      --project blundr
+      --region europe-north1
+      --platform managed
+      --allow-unauthenticated
+      --cpu 1
+      --memory 512Mi
+      --min-instances 0
+      --max-instances 1
+      --cpu-throttling
+      --port 8000

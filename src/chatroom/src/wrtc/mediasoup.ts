@@ -52,8 +52,8 @@ export const transports = new Map<
 >();
 
 export async function init(server: Server): Promise<void> {
-  listenIp = process.env.MEDIASOUP_LISTEN_IP ?? "0.0.0.0";
-  announcedIp = process.env.MEDIASOUP_ANNOUNCED_IP ?? "127.0.0.1";
+  listenIp = process.env.MEDIASOUP_LISTEN_IP || "0.0.0.0";
+  announcedIp = process.env.MEDIASOUP_ANNOUNCED_IP || "127.0.0.1";
 
   if (!announcedIp) {
     throw new Error("No public IP available for Mediasoup WebRTC transport");
@@ -61,8 +61,8 @@ export async function init(server: Server): Promise<void> {
 
   worker = await createWorker({
     logLevel: "warn",
-    rtcMinPort: Number(process.env.MEDIASOUP_RTC_MIN_PORT) ?? 2000,
-    rtcMaxPort: Number(process.env.MEDIASOUP_RTC_MAX_PORT) ?? 2100,
+    rtcMinPort: Number(process.env.MEDIASOUP_RTC_MIN_PORT || 2000),
+    rtcMaxPort: Number(process.env.MEDIASOUP_RTC_MAX_PORT || 2100),
   });
 
   router = await worker.createRouter({

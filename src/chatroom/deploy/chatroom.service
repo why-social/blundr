@@ -1,0 +1,25 @@
+[Unit]
+Description=Chatroom Docker Container
+After=docker.service
+Requires=docker.service
+
+[Service]
+User=root
+Group=root
+Restart=always
+ExecStartPre=/usr/bin/gcloud auth configure-docker europe-north2-docker.pkg.dev
+ExecStart=/usr/bin/docker run \
+  --name chatroom \
+  --rm \
+  -p 443:3000 \
+  -p 2000-2100:2000-2100/udp \
+  -v /etc/letsencrypt/live/chatroom.blundr.razvanalbu.com:/etc/tls:ro \
+  -v /etc/letsencrypt/archive:/archive:ro \
+  -e MEDIASOUP_ANNOUNCED_IP=34.2.61.139 \
+  europe-north2-docker.pkg.dev/blundr/blundr-repo/chatroom:latest
+
+ExecStop=/usr/bin/docker stop chatroom
+
+[Install]
+WantedBy=multi-user.target
+

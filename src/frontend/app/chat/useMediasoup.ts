@@ -8,8 +8,8 @@ import {
   resumeConsumer,
   createProducer,
   createConsumer,
-} from "@/api/mediasoup";
-import { init as initRoomHandler } from "@/api/room";
+} from "@/app/api/mediasoup";
+import { init as initRoomHandler } from "@/app/api/room";
 
 export function useMediaSoup(
   localVideoRef: RefObject<HTMLVideoElement | null>,

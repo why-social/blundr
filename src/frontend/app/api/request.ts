@@ -3,13 +3,7 @@ export async function chatroomRequest<T>(
   path: string,
   body?: unknown,
 ): Promise<T> {
-  const BACKEND_URL = process.env.NEXT_PUBLIC_CHATROOM_URL;
-
-  if (!BACKEND_URL) {
-    throw Error("NEXT_PUBLIC_CHATROOM_URL is not provided.");
-  }
-
-  const res = await fetch(`${BACKEND_URL}/api/v1/${path}`, {
+  const res = await fetch(`api/chatroom/${path}`, {
     method,
     headers: {
       "Content-Type": "application/json",

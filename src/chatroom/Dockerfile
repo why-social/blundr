@@ -16,6 +16,12 @@ COPY . .
 ARG MEDIASOUP_ANNOUNCED_IP
 ENV MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
 
+# needed for the tls mounts in the vm
+RUN mkdir -p /etc/tls
+VOLUME ["/etc/tls"]
+RUN mkdir -p /archive
+VOLUME ["/archive"]
+
 RUN npm install
 RUN npm run build
 
