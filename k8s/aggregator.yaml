@@ -23,6 +23,9 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 42069
+          env:
+            - name: OLLAMA_URL
+              value: "https://ollama.max-orlen.com/api/generate"
 ---
 apiVersion: v1
 kind: Service

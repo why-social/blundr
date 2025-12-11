@@ -3,7 +3,7 @@ from aggregator import aggregate_files, extract_section_llm, User
 import httpx
 import os
 
-OLLAMA_BASE = os.environ.get("OLLAMA_BASE", "http://localhost:11434")
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 
 app = FastAPI()
 client = httpx.AsyncClient(timeout=None)
@@ -66,7 +66,7 @@ async def call_llm(transcription: dict, user_id: str):
     """
 
     response = await client.post(
-        OLLAMA_BASE + "/api/generate",
+        OLLAMA_URL,
         json={
             "model": "qwen2.5:7b", 
             "prompt": prompt, 
