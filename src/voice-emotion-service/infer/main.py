@@ -24,7 +24,7 @@ async def infer(
     try:
         # Save the uploaded file to a temporary location
         tmp_path = None
-        with tempfile.NamedTemporaryFile(delete=False, suffix="wav") as tmp:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             shutil.copyfileobj(audio.file, tmp)
             tmp_path = Path(tmp.name)
 
@@ -41,7 +41,7 @@ async def infer(
 
         # Send the result to the aggregator
         try:
-            r = client.post(AGGREGATOR_URL, json=payload)
+            r = client.post(AGGREGATOR_URL, data=payload)
             r.raise_for_status()
         except Exception as e:
             print(f"Failed to send data to aggregator: {e}")

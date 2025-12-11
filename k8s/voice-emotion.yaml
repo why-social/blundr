@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ver
+  labels:
+    app: blundr
+    component: ver
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blundr
+      component: ver
+  template:
+    metadata:
+      labels:
+        app: blundr
+        component: ver
+    spec:
+      containers:
+        - name: ver
+          image: europe-north2-docker.pkg.dev/blundr/blundr-repo/ver:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 42069
+          env:
+            - name: AGGREGATOR_URL
+              value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ver-service
+  labels:
+    app: blundr
+    component: ver
+spec:
+  selector:
+    app: blundr
+    component: ver
+  ports:
+    - port: 42069
+      targetPort: 42069
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ver-service-public
+  labels:
+    app: blundr
+    component: ver
+  annotations:
+    cloud.google.com/neg: '{"ingress":true}'
+    cloud.google.com/network-tier: Standard
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 34.2.52.16
+  selector:
+    app: blundr
+    component: ver
+  ports:
+    - port: 80
+      targetPort: 42069
+      protocol: TCP

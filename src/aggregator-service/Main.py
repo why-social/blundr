@@ -126,7 +126,7 @@ async def get_files(
     if fe_text is not None and fe_text != "":
         session_id_tracker[session_id][uuid]["face"] = fe_text
     if ve_text is not None:
-        session_id_tracker[session_id][uuid]["voice"] = fe_text
+        session_id_tracker[session_id][uuid]["voice"] = ve_text
     
     session_id_tracker[session_id][uuid]["userId"] = uuid
     session_users = session_id_tracker[session_id]

@@ -79,7 +79,7 @@ def ve_fe_aggregation(user: User, session_id: str):
                     "time": time,
                     "speaking_user": user.id,
                     "sentence": voice_emotion_row['sentence'],
-                    "speaker_voice_emotion": voice_emotion_row['emotion'],
+                    "speaker_voice_emotion": voice_emotion_row['label'],
                     "speaker_face_emotion": row['emotion']
                 })
         merged_dataframe = pd.DataFrame(merged_rows)
