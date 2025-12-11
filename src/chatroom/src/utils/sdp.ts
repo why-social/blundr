@@ -1,11 +1,7 @@
 import { Consumer, MediaKind, RtpParameters } from "mediasoup/types";
 
 // based on https://github.com/ethand91/mediasoup3-record-demo/blob/180973063f1aecdc02b91d8e909f21ceb40ce53b/server/src/sdp.js#L4
-export function generateSDP(
-  consumer: Consumer,
-  rtpPort: number,
-  rtcpPort: number
-) {
+export function generateSDP(consumer: Consumer, rtpPort: number) {
   const { kind, rtpParameters } = consumer;
   const codecInfo = getCodecInfoFromRtpParameters(kind, rtpParameters);
 
@@ -16,7 +12,6 @@ export function generateSDP(
     "c=IN IP4 127.0.0.1",
     "t=0 0",
     `m=${kind} ${rtpPort} RTP/AVP ${codecInfo.payloadType}`,
-    `a=rtcp:${rtcpPort} IN IP4 127.0.0.1`,
     `a=rtpmap:${codecInfo.payloadType} ${codecInfo.codecName}/${
       codecInfo.clockRate
     }${codecInfo.channels ? "/" + codecInfo.channels : ""}`,
