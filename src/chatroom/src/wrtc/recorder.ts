@@ -11,12 +11,12 @@ import path from "path";
 import { transports } from "./mediasoup.js";
 import { getFreeUdpPort } from "../utils/ports.js";
 import { generateSDP } from "../utils/sdp.js";
+import { uploadForAnalysis } from "../analysis/upload.js";
 
 export type RecorderEntry = {
   ffmpeg: ReturnType<typeof spawn>;
   consumer: Consumer;
   transport: PlainTransport;
-  file: string;
   sdpPath: string;
 };
 
@@ -98,17 +98,33 @@ async function createProducerRecorder(
 
   fs.writeFileSync(sdpPath, sdp);
 
-  const file = path.join(baseDir, `${kind}.webm`);
+  let file: string;
+  let ffmpegArgs: string[];
 
-  const ffmpegArgs = [
-    "-protocol_whitelist",
-    "file,udp,rtp",
-    "-i",
-    sdpPath,
-    "-c",
-    "copy",
-    file,
-  ];
+  if (kind === "audio") {
+    file = path.join(baseDir, `${kind}.wav`);
+    ffmpegArgs = [
+      "-protocol_whitelist",
+      "file,udp,rtp",
+      "-i",
+      sdpPath,
+      "-c:a",
+      "pcm_s16le",
+      "-vn",
+      file,
+    ];
+  } else {
+    file = path.join(baseDir, `${kind}.webm`);
+    ffmpegArgs = [
+      "-protocol_whitelist",
+      "file,udp,rtp",
+      "-i",
+      sdpPath,
+      "-c",
+      "copy",
+      file,
+    ];
+  }
 
   console.log(`Starting ffmpeg: ${file}`);
   const ffmpeg = spawn("ffmpeg", ffmpegArgs);
@@ -145,9 +161,27 @@ async function createProducerRecorder(
     } catch (error) {
       console.warn(`Could not delete SDP: ${sdpPath}`, error);
     }
+
+    uploadForAnalysis({
+      sessionId,
+      clientId,
+      file,
+      kind,
+    }).finally(() => {
+      fs.unlink(file, (error) => {
+        if (error) {
+          console.error(`Failed to delete file ${file}`, error);
+        }
+      });
+    });
   });
 
-  return { ffmpeg, consumer, transport: plainTransport, file, sdpPath };
+  return {
+    ffmpeg,
+    consumer,
+    transport: plainTransport,
+    sdpPath,
+  };
 }
 
 export function stopSessionRecording(sessionId: string) {
