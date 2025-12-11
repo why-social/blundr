@@ -17,21 +17,31 @@ client = httpx.Client()
 
 @app.post("/predict-audio-emotion")
 async def infer(
+    background_tasks: BackgroundTasks,
     session_id: str = Form(...),
     user_id: str = Form(...),
     audio: UploadFile = File(...),
 ):
     try:
         # Save the uploaded file to a temporary location
-        tmp_path = None
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             shutil.copyfileobj(audio.file, tmp)
             tmp_path = Path(tmp.name)
 
-        assert tmp_path is not None
+            # Schedule the processing task in the background
+            background_tasks.add_task(process_and_send, tmp_path, user_id, session_id)
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
-        transrcipt_df = transcribe_audio(tmp_path)
-        output = model.infer(tmp_path, transrcipt_df)
+    return {"status": "accepted"}
+
+
+# Asynchronous function to process video and send results
+def process_and_send(file_path: Path, user_id: str, session_id: str):
+    try:
+    # Process the video
+        transrcipt_df = transcribe_audio(file_path)
+        output = model.infer(file_path, transrcipt_df)
 
         payload = {
             "session_id": session_id,
@@ -45,9 +55,7 @@ async def infer(
             r.raise_for_status()
         except Exception as e:
             print(f"Failed to send data to aggregator: {e}")
-
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-    return {"status": "accepted"}
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
 
