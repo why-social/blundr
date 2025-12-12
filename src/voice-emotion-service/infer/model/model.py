@@ -10,7 +10,7 @@ from common.utils.transformations import standardize_length
 from torch.nn.functional import softmax
 from tqdm import tqdm
 
-from data.load import load_transcribed_segments
+from data.segment import load_transcribed_segments
 
 
 class Model:
@@ -25,12 +25,10 @@ class Model:
             num_classes=self.data_config.n_classes,
         ).to(self.model_config.device)
 
-        print("Loading model...")
         self.model.load_state_dict(
             torch.load(model_path, map_location=self.model_config.device)
         )
         self.model.eval()
-        print("Loaded")
 
         self.label_map = {v: k for k, v in self.data_config.label_map.items()}
         self.sorted_indices = sorted(self.label_map.keys())
@@ -45,6 +43,10 @@ class Model:
         results = []
         with torch.no_grad():
             for seg in tqdm(segments, desc="Predicting"):
+                print(f"DEBUG: Processing segment {seg.sentence_idx}: {seg.start_time} to {seg.end_time}")
+                if seg.duration <= self.data_config.infer_skip_thresh:
+                    continue
+
                 spec = self.processor.segment_to_spec(
                     audio_path, seg
                 )  # load chunk (<= target_len)
@@ -99,3 +101,4 @@ class Model:
         #     print(f"result_df ({result_df.shape}):\n{result_df}")
 
         return result_df
+

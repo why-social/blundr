@@ -6,15 +6,17 @@ import tempfile
 from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
 from model.model import Model
 from model.speech_recognition import transcribe_audio
+from data.audio import get_duration, is_file_silent
 import os
 from threading import Lock 
+from pandas import DataFrame
+from consts import SILENCE_TOKEN, AGGREGATOR_URL
 
 audio_processing_lock = Lock()
 
-AGGREGATOR_URL = os.environ.get("AGGREGATOR_URL", "http://localhost:42069/aggregator")
-
 app = FastAPI()
 model = Model(Path("/etc/model.pth"))
+client = httpx.Client(timeout=None)
 
 
 @app.post("/predict-audio-emotion")
@@ -29,6 +31,7 @@ async def infer(
             shutil.copyfileobj(audio.file, tmp)
             tmp_path = Path(tmp.name)
 
+            print(f"Processing {tmp.name}")
             background_tasks.add_task(process_and_send, tmp_path, user_id, session_id)
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -37,25 +40,52 @@ async def infer(
 
 
 def process_and_send(file_path: Path, user_id: str, session_id: str):
-    try:
+    file_duration = get_duration(file_path)
+
+    if file_duration == 0.0 or is_file_silent(file_path):
+        print(f"Skipping {file_path}: File is empty or silent.")
+
+        dummy_df = DataFrame([{
+            "timestamp_start": "0.00",
+            "timestamp_end": f"{file_duration:.2f}", 
+            "sentence": SILENCE_TOKEN, 
+            "label": "silence", 
+            "confidence": 1.0,
+        }])
+        csv_output = dummy_df.to_csv(index=False)
+
+    else:
         with audio_processing_lock:
             transrcipt_df = transcribe_audio(file_path)
-            output = model.infer(file_path, transrcipt_df)
+
+            if transrcipt_df.empty:
+                print(f"Skipping {file_path}: Transcript is empty.")
+                dummy_df = DataFrame([{
+                    "timestamp_start": "0.00",
+                    "timestamp_end": "0.00", 
+                    "sentence": "", 
+                    "label": "silence", 
+                    "confidence": 1.0
+                }])
+                csv_output = dummy_df.to_csv(index=False)
+            else:
+                # Only run expensive inference if we have data
+                output = model.infer(file_path, transrcipt_df)
+                csv_output = output.to_csv(index=False)
 
         payload = {
             "session_id": session_id,
             "uuid": user_id,
-            "ve_text": output.to_csv(index=False),
+            "ve_text": csv_output,
         }
 
-        # Send the result to the aggregator
         try:
             with httpx.Client() as client:
                 r = client.post(AGGREGATOR_URL, data=payload)
                 r.raise_for_status()
         except Exception as e:
             print(f"Failed to send data to aggregator: {e}")
-    finally:
-        if os.path.exists(file_path):
-            os.remove(file_path)
 
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)

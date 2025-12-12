@@ -5,8 +5,8 @@ from typing import Dict
 import whisper as ws
 from pandas import DataFrame
 
-MIN_PAUSE = 0.2
-SILENCE_TOKEN = ". . ."
+from consts import SILENCE_TOKEN, MIN_PAUSE
+
 model = ws.load_model("base", device="cpu")
 
 
