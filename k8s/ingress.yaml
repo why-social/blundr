@@ -1,0 +1,39 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-reverse-proxy
+  namespace: default
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "1000m"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: ""
+    http:
+      paths:
+      # FER service
+      - path: /face-emotion(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: fer-service
+            port:
+              number: 80
+      # VER service
+      - path: /voice-emotion(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: ver-service
+            port:
+              number: 80
+      # Aggregator service
+      - path: /aggregator(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: aggregator-service
+            port:
+              number: 80

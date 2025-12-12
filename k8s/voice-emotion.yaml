@@ -39,27 +39,12 @@ spec:
     app: blundr
     component: ver
   ports:
-    - port: 42069
-      targetPort: 42069
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: ver-service-public
-  labels:
-    app: blundr
-    component: ver
-  annotations:
-    cloud.google.com/neg: '{"ingress":true}'
-    cloud.google.com/network-tier: Standard
-spec:
-  type: LoadBalancer
-  loadBalancerIP: 34.2.52.16
-  selector:
-    app: blundr
-    component: ver
-  ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 42069
       protocol: TCP
+    - name: legacy
+      port: 42069
+      targetPort: 42069
+      protocol: TCP
+  type: ClusterIP

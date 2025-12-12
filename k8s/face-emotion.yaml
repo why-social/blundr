@@ -39,26 +39,12 @@ spec:
     app: blundr
     component: fer
   ports:
-    - port: 42069
-      targetPort: 42069
-  type: ClusterIP
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: fer-service-public
-  labels:
-    app: blundr
-    component: fer
-  annotations:
-    cloud.google.com/network-tier: Standard
-spec:
-  type: LoadBalancer
-  loadBalancerIP: 34.2.56.206
-  selector:
-    app: blundr
-    component: fer
-  ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 42069
       protocol: TCP
+    - name: legacy
+      port: 42069
+      targetPort: 42069
+      protocol: TCP
+  type: ClusterIP
