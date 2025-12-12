@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: aggregator
+  labels:
+    app: blundr
+    component: aggreagtor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blundr
+      component: aggregator
+  template:
+    metadata:
+      labels:
+        app: blundr
+        component: aggregator
+    spec:
+      containers:
+        - name: aggregator
+          image: europe-north2-docker.pkg.dev/blundr/blundr-repo/aggregator:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 42069
+          env:
+            - name: OLLAMA_URL
+              value: "https://ollama.max-orlen.com/api/generate"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregator-service
+  labels:
+    app: blundr
+    component: aggregator
+spec:
+  selector:
+    app: blundr
+    component: aggregator
+  ports:
+    - port: 42069
+      targetPort: 42069
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aggregator-service-public
+  labels:
+    app: blundr
+    component: aggregator
+  annotations:
+    cloud.google.com/neg: '{"ingress":true}'
+    cloud.google.com/network-tier: Standard
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 34.2.52.222
+  selector:
+    app: blundr
+    component: aggregator
+  ports:
+    - port: 80
+      targetPort: 42069
+      protocol: TCP

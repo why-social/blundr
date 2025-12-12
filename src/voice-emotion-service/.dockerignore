@@ -3,5 +3,6 @@
 **/.venv/
 **/build/
 **/dist/
-**/out/
+common/out/
+infer/out/
 **/test/

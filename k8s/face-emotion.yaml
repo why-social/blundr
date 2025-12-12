@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fer
+  labels:
+    app: blundr
+    component: fer
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: blundr
+      component: fer
+  template:
+    metadata:
+      labels:
+        app: blundr
+        component: fer
+    spec:
+      containers:
+        - name: fer
+          image: europe-north2-docker.pkg.dev/blundr/blundr-repo/fer:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 42069
+          env:
+            - name: AGGREGATOR_URL
+              value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fer-service
+  labels:
+    app: blundr
+    component: fer
+spec:
+  selector:
+    app: blundr
+    component: fer
+  ports:
+    - port: 42069
+      targetPort: 42069
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fer-service-public
+  labels:
+    app: blundr
+    component: fer
+  annotations:
+    cloud.google.com/network-tier: Standard
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 34.2.56.206
+  selector:
+    app: blundr
+    component: fer
+  ports:
+    - port: 80
+      targetPort: 42069
+      protocol: TCP

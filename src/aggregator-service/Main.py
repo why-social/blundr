@@ -2,7 +2,9 @@ from fastapi import FastAPI, Form, UploadFile, File, HTTPException, BackgroundTa
 from aggregator import aggregate_files, extract_section_llm, User
 import asyncio
 import httpx
-import json
+import os
+
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 
 app = FastAPI()
 client = httpx.AsyncClient(timeout=None)
@@ -87,7 +89,7 @@ async def call_llm(transcription: dict, user_id: str):
 
 
     response = await client.post(
-        "http://localhost:11434/api/generate",
+        OLLAMA_URL,
         json={
             "model": "qwen2.5:7b", 
             "prompt": prompt, 
@@ -183,7 +185,7 @@ async def get_files(
 
     if fe_text is not None and fe_text != "":
         session_id_tracker[session_id][uuid]["face"] = fe_text
-    if ve_text is not None and ve_text != "":
+    if ve_text is not None:
         session_id_tracker[session_id][uuid]["voice"] = ve_text
     
     session_id_tracker[session_id][uuid]["userId"] = uuid
