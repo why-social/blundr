@@ -2,6 +2,9 @@ from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
 from process_video import process_video
 from typing import Annotated
 import httpx, tempfile, shutil, os
+from threading import Lock
+
+video_processing_lock = Lock()
 
 app = FastAPI()
 
@@ -14,27 +17,28 @@ def read_root():
 
 # Asynchronous function to process video and send results
 def process_and_send(file_path: str, user_id: str, session_id: str):
-	try:
-		# Process the video
-		log = process_video(file_path)
+	with video_processing_lock:
+		try:
+			# Process the video
+			log = process_video(file_path)
 
-		payload = {
-			"session_id": session_id,
-			"uuid": user_id,
-			"fe_text": log
-		}
+			payload = {
+				"session_id": session_id,
+				"uuid": user_id,
+				"fe_text": log
+			}
 
-		# Send the result to the aggregator
-		with httpx.Client(timeout=TIMEOUT_FOR_AGGREGATOR_SERVICE) as client:
-			try:
-				r = client.post(AGGREGATOR_URL, data=payload)
-				r.raise_for_status()
-				print("Data sent to aggregator successfully.")
-			except Exception as e:
-				print(f"Failed to send data to aggregator: {e}")
-	finally:
-		if os.path.exists(file_path):
-			os.remove(file_path)
+			# Send the result to the aggregator
+			with httpx.Client(timeout=TIMEOUT_FOR_AGGREGATOR_SERVICE) as client:
+				try:
+					r = client.post(AGGREGATOR_URL, data=payload)
+					r.raise_for_status()
+					print("Data sent to aggregator successfully.")
+				except Exception as e:
+					print(f"Failed to send data to aggregator: {e}")
+		finally:
+			if os.path.exists(file_path):
+				os.remove(file_path)
 
 @app.post("/predict-face-emotion")
 async def process_video_endpoint(
