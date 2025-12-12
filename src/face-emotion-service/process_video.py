@@ -67,14 +67,15 @@ face_net = cv2.dnn.readNetFromCaffe(FACE_PROTO, FACE_MODEL)
 print("DNN face detector loaded.")
 
 def process_video(file_path):
-	vidcap = cv2.VideoCapture(file_path, cv2.CAP_FFMPEG)
+	vidcap = cv2.VideoCapture(file_path)
 	fps = vidcap.get(cv2.CAP_PROP_FPS)
+	if fps == 0 or np.isnan(fps):
+		fps = 30  # fallback for broken streams
 	frame_step = int(fps * PREDICTION_INTERVAL)
 	success, frame = vidcap.read()
 	frame_count = 0
 	next_time = 0.0
-	log = ""
-	log += "time,emotion,confidence\n"
+	log = "time,emotion,confidence\n"
 	if not success:
 		vidcap.release()
 		return {"status": "error", "message": "Could not read video file."}
@@ -94,6 +95,10 @@ def process_video(file_path):
 
 
 def get_emotion(frame):
+	# validate frame
+	if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
+		return "undefined", 0.0
+	
 	(h, w) = frame.shape[:2]
 
 	# Prepare blob for DNN face detector (expects BGR, 300x300)
@@ -129,7 +134,7 @@ def get_emotion(frame):
 
 		# Extract face ROI (BGR)
 		face_rgb = frame[y1:y2, x1:x2]
-		if face_rgb.size == 0:
+		if face_rgb is None or face_rgb.size == 0:
 			continue
 
 		face_pil = Image.fromarray(cv2.cvtColor(face_rgb, cv2.COLOR_BGR2RGB))
