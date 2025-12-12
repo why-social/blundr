@@ -10,7 +10,7 @@ from common.utils.transformations import standardize_length
 from torch.nn.functional import softmax
 from tqdm import tqdm
 
-from data.load import load_transcribed_segments
+from data.segment import load_transcribed_segments
 
 
 class Model:
@@ -99,3 +99,4 @@ class Model:
         #     print(f"result_df ({result_df.shape}):\n{result_df}")
 
         return result_df
+
