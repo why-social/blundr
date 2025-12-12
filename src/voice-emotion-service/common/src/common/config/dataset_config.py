@@ -27,6 +27,7 @@ class DatasetConfig:
     n_fft: int = hop_length * 2
     cache_dir: Path = Path("./.cache")
     raw_data_dir: Path = Path("./.raw_datasets")
+    infer_skip_thresh: float = 1.0 # skip segments that are shorter than this amount of seconds
 
     label_map = {
         "angry": 0,
