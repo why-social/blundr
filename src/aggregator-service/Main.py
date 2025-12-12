@@ -2,9 +2,81 @@ from fastapi import FastAPI, Form, UploadFile, File, HTTPException, BackgroundTa
 from aggregator import aggregate_files, extract_section_llm, User
 import asyncio
 import httpx
+import json
 import os
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
+PREMADE_OUTPUT = {
+  "session_id": "test",
+  "requested_by": "test",
+  "status": "completed",
+  "analysis": {
+    "highlights": [
+      {
+        "timestamp": "50.5",
+        "main_user": "test",
+        "main_message": "And then that minute will begin of him taking over Yuji and that minute is where he is not allowed to harm anyone.",
+        "description": "Exhibits clear understanding of the situation's rules despite negative emotions.",
+        "annotation": "great",
+        "context_block": [
+          {
+            "timestamp": "50.0",
+            "user": "test",
+            "message": "And then that minute will begin of him taking over Yuji and that minute is where he is not allowed to harm anyone."
+          },
+          {
+            "timestamp": "51.0",
+            "user": "test1",
+            "message": "And then that minute will begin of him taking over Yuji and that minute is where he is not allowed to harm anyone."
+          }
+        ]
+      },
+      {
+        "timestamp": "47.0",
+        "main_user": "test",
+        "main_message": "Do I have a right?",
+        "description": "Asks an important question, showing interest in understanding the situation.",
+        "annotation": "great",
+        "context_block": [
+          {
+            "timestamp": "46.5",
+            "user": "test1",
+            "message": "But what about this?"
+          },
+          {
+            "timestamp": "47.0",
+            "user": "test",
+            "message": "Do I have a right?"
+          }
+        ]
+      },
+      {
+        "timestamp": "32.5",
+        "main_user": "test",
+        "main_message": "He’s not allowed to harm anyone during that minute.",
+        "description": "Clearly defines the constraints of the situation, showing understanding and focus on rules.",
+        "annotation": "excellent",
+        "context_block": [
+          {
+            "timestamp": "32.0",
+            "user": "test1",
+            "message": "What about this?"
+          },
+          {
+            "timestamp": "32.5",
+            "user": "test",
+            "message": "He’s not allowed to harm anyone during that minute."
+          }
+        ]
+      }
+    ],
+    "strengths": [],
+    "improvements": [
+      "Could provide more context to clarify difficult points for better comprehension from others.",
+      "Try to maintain a calmer tone when explaining complex situations to avoid misunderstandings."
+    ]
+  }
+}
 
 app = FastAPI()
 client = httpx.AsyncClient(timeout=None)
@@ -141,10 +213,19 @@ def parse_bullet_points(section):
 
 @app.get("/analyze")
 async def analyze_session(session_id: str, user_id: str):
+    if session_id == "test" and user_id == "test":
+        return {
+            "session_id": session_id,
+            "requested_by": user_id,
+            "status": "completed",
+            "analysis": PREMADE_OUTPUT
+        }
     if session_id not in session_aggregate_cache:
         raise HTTPException(404, "Session not found")
     if user_id not in session_aggregate_cache[session_id]:
         raise HTTPException(404, "User not found in session")
+
+
 
     llm_analysis = session_aggregate_cache[session_id].pop(user_id, None)
     if not session_aggregate_cache[session_id]:
