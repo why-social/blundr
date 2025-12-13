@@ -1,7 +1,7 @@
 import { forwardRef, JSX } from "react";
 import Video from "./Video";
 import { twMerge } from "tailwind-merge";
-import Spinner from "./Spinner";
+import Spinner from "../Spinner";
 
 type CallVideoProps = JSX.IntrinsicElements["video"] & {
   showSpinner?: boolean;

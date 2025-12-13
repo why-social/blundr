@@ -20,7 +20,7 @@ export default function Home() {
           <EmphasisText
             text="BLUNDR"
             emphasis="strong"
-            className="animate-slide-in text-6xl font-black italic sm:text-7xl md:text-8xl"
+            className="text-6xl font-black italic sm:text-7xl md:text-8xl"
           />
         </div>
 

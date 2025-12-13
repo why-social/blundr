@@ -13,7 +13,7 @@ export async function chatroomRequest<T>(
   path: string,
   body?: unknown,
 ): Promise<ApiResponse<T>> {
-  return request(method, `api/chatroom/${path}`, body);
+  return request(method, `/api/chatroom/${path}`, body);
 }
 
 export async function analysisRequest<T>(
@@ -21,7 +21,7 @@ export async function analysisRequest<T>(
   path: string,
   body?: unknown,
 ): Promise<ApiResponse<T>> {
-  return request(method, `api/analysis/${path}`, body);
+  return request(method, `/api/analysis/${path}`, body);
 }
 
 async function request<T>(
