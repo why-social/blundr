@@ -61,4 +61,3 @@ def load_transcribed_segments(
                 chunks.append(TranscribedSegment(idx, chunk_start, chunk_end))
 
     return chunks
-

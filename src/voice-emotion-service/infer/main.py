@@ -42,13 +42,17 @@ async def infer(
 
 def process_and_send(file_path: Path, user_id: str, session_id: str):
     file_duration = get_duration(file_path)
-    dummy_df = DataFrame([{
-        "timestamp_start": "0.00",
-        "timestamp_end": f"{file_duration:.2f}",
-        "sentence": SILENCE_TOKEN, 
-        "label": "silence",
-        "confidence": 1.0,
-    }])
+    dummy_df = DataFrame(
+        [
+            {
+                "timestamp_start": "0.00",
+                "timestamp_end": f"{file_duration:.2f}",
+                "sentence": SILENCE_TOKEN,
+                "label": "silence",
+                "confidence": 1.0,
+            }
+        ]
+    )
 
     if file_duration == 0.0 or is_file_silent(file_path):
         print(f"Skipping {file_path}: File is empty or silent.")

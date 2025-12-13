@@ -11,6 +11,7 @@ def get_duration(path: Path) -> float:
     except Exception:
         return 0.0
 
+
 def is_file_silent(path: Path, threshold: float = 1e-4) -> bool:
     """Returns True if file is purely silent, or cannot be opened."""
     try:
