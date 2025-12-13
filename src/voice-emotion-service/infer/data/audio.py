@@ -1,6 +1,8 @@
 from pathlib import Path
+
 import soundfile as sf
 import torchaudio
+
 
 def get_duration(path: Path) -> float:
     try:
@@ -8,6 +10,7 @@ def get_duration(path: Path) -> float:
         return info.duration
     except Exception:
         return 0.0
+
 
 def is_file_silent(path: Path, threshold: float = 1e-4) -> bool:
     """Returns True if file is purely silent, or cannot be opened."""

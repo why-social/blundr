@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from common.config.dataset_config import DatasetConfig
 
+from consts import SILENCE_TOKEN
+
 
 @dataclass
 class TranscribedSegment:
@@ -42,7 +44,7 @@ def load_transcribed_segments(
 
         target_sec = config.target_length
 
-        if str(row["sentence"]) == ". . .":
+        if str(row["sentence"]) == SILENCE_TOKEN:
             continue  # skip silences
 
         if duration <= target_sec:
@@ -59,4 +61,3 @@ def load_transcribed_segments(
                 chunks.append(TranscribedSegment(idx, chunk_start, chunk_end))
 
     return chunks
-

@@ -1,16 +1,17 @@
-from pathlib import Path
-
-import httpx
+import os
 import shutil
 import tempfile
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
+from pathlib import Path
+from threading import Lock
+
+import httpx
+from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
+from pandas import DataFrame
+
+from consts import AGGREGATOR_URL, SILENCE_TOKEN
+from data.audio import get_duration, is_file_silent
 from model.model import Model
 from model.speech_recognition import transcribe_audio
-from data.audio import get_duration, is_file_silent
-import os
-from threading import Lock 
-from pandas import DataFrame
-from consts import SILENCE_TOKEN, AGGREGATOR_URL
 
 audio_processing_lock = Lock()
 
@@ -41,17 +42,20 @@ async def infer(
 
 def process_and_send(file_path: Path, user_id: str, session_id: str):
     file_duration = get_duration(file_path)
+    dummy_df = DataFrame(
+        [
+            {
+                "timestamp_start": "0.00",
+                "timestamp_end": f"{file_duration:.2f}",
+                "sentence": SILENCE_TOKEN,
+                "label": "silence",
+                "confidence": 1.0,
+            }
+        ]
+    )
 
     if file_duration == 0.0 or is_file_silent(file_path):
         print(f"Skipping {file_path}: File is empty or silent.")
-
-        dummy_df = DataFrame([{
-            "timestamp_start": "0.00",
-            "timestamp_end": f"{file_duration:.2f}", 
-            "sentence": SILENCE_TOKEN, 
-            "label": "silence", 
-            "confidence": 1.0,
-        }])
         csv_output = dummy_df.to_csv(index=False)
 
     else:
@@ -60,16 +64,8 @@ def process_and_send(file_path: Path, user_id: str, session_id: str):
 
             if transrcipt_df.empty:
                 print(f"Skipping {file_path}: Transcript is empty.")
-                dummy_df = DataFrame([{
-                    "timestamp_start": "0.00",
-                    "timestamp_end": "0.00", 
-                    "sentence": "", 
-                    "label": "silence", 
-                    "confidence": 1.0
-                }])
                 csv_output = dummy_df.to_csv(index=False)
             else:
-                # Only run expensive inference if we have data
                 output = model.infer(file_path, transrcipt_df)
                 csv_output = output.to_csv(index=False)
 

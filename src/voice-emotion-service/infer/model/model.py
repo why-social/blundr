@@ -10,6 +10,7 @@ from common.utils.transformations import standardize_length
 from torch.nn.functional import softmax
 from tqdm import tqdm
 
+from consts import SILENCE_TOKEN
 from data.segment import load_transcribed_segments
 
 
@@ -43,7 +44,7 @@ class Model:
         results = []
         with torch.no_grad():
             for seg in tqdm(segments, desc="Predicting"):
-                print(f"DEBUG: Processing segment {seg.sentence_idx}: {seg.start_time} to {seg.end_time}")
+                # print(f"DEBUG: Processing segment {seg.sentence_idx}: {seg.start_time} to {seg.end_time}")
                 if seg.duration <= self.data_config.infer_skip_thresh:
                     continue
 
@@ -66,6 +67,21 @@ class Model:
 
                 results.append(row)
 
+        # if every segment was skipped
+        if not results:
+            print(
+                f"WARN: no results for {audio_path} with transcription:\n{transcript.describe()}"
+            )
+            return pd.DataFrame(
+                {
+                    "timestamp_start": "0.00",
+                    "timestamp_end": transcript.iloc[-1]["timestamp_end"],
+                    "sentence": SILENCE_TOKEN,
+                    "label": "silence",
+                    "confidence": 1.0,
+                }
+            )
+
         # === TRANSFORM OUTPUT ===
         preds_df = pd.DataFrame(
             results
@@ -86,7 +102,7 @@ class Model:
         result_df["confidence"] = result_df.index.map(scores)
 
         # === HANDLE SPECIAL CASES ===
-        silence_mask = result_df["sentence"] == ". . ."
+        silence_mask = result_df["sentence"] == SILENCE_TOKEN
         result_df.loc[silence_mask, "label"] = "silence"
         result_df.loc[silence_mask, "confidence"] = 1.0
 
@@ -101,4 +117,3 @@ class Model:
         #     print(f"result_df ({result_df.shape}):\n{result_df}")
 
         return result_df
-
