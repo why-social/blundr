@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import { MediaKind } from "mediasoup/types";
+import { logError, logInfo } from "../utils/logs.js";
 
 export function uploadForAnalysis({
   sessionId,
@@ -32,16 +33,13 @@ export function uploadForAnalysis({
 
   return fetch(url, { method: "POST", body: form })
     .then(async (res) => {
-      console.log(`Sent ${kind} for ${clientId}, status: ${res.status}`);
+      logInfo(`Sent ${kind} for ${clientId}, status: ${res.status}`);
     })
     .catch((error) => {
       if (error instanceof Error) {
-        console.error(
-          `Upload failed for ${kind} of ${clientId}:`,
-          error.message
-        );
+        logError(`Upload failed for ${kind} of ${clientId}:`, error.message);
       } else {
-        console.error(`Upload failed for ${kind} of ${clientId}:`, error);
+        logError(`Upload failed for ${kind} of ${clientId}:`, error);
       }
     });
 }

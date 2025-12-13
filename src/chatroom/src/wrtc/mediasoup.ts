@@ -17,6 +17,7 @@ import {
 } from "mediasoup/types";
 import { Optional } from "../utils/types.js";
 import { startSessionRecording, stopSessionRecording } from "./recorder.js";
+import { logInfo } from "../utils/logs.js";
 
 type TransportSection = {
   transport: WebRtcTransport<AppData>;
@@ -82,7 +83,7 @@ export async function init(server: Server): Promise<void> {
     ],
   });
 
-  console.log("Mediasoup worker and router created");
+  logInfo("Mediasoup worker and router created");
 
   initMatcher(
     server,
