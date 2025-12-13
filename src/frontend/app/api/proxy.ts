@@ -11,7 +11,11 @@ export async function proxy(
   context: Context,
 ) {
   const { path } = await context.params;
-  const backendUrl = `${location}/${path?.join("/") ?? ""}`;
+
+  const pathname = path?.join("/") ?? "";
+  const search = req.nextUrl.search;
+
+  const backendUrl = `${location}/${pathname}${search}`;
 
   // node 18+ requires a duples attribute to be set
   const init: NodeFetchInit = {
