@@ -1,6 +1,8 @@
 from pathlib import Path
+
 import soundfile as sf
 import torchaudio
+
 
 def get_duration(path: Path) -> float:
     try:

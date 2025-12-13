@@ -1,7 +1,6 @@
 from pathlib import Path
 
 import pandas as pd
-from consts import SILENCE_TOKEN
 import torch
 from common.config.dataset_config import DatasetConfig
 from common.config.model_config import ModelConfig
@@ -11,6 +10,7 @@ from common.utils.transformations import standardize_length
 from torch.nn.functional import softmax
 from tqdm import tqdm
 
+from consts import SILENCE_TOKEN
 from data.segment import load_transcribed_segments
 
 

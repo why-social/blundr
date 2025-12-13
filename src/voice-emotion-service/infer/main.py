@@ -1,16 +1,17 @@
-from pathlib import Path
-
-import httpx
+import os
 import shutil
 import tempfile
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
+from pathlib import Path
+from threading import Lock
+
+import httpx
+from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
+from pandas import DataFrame
+
+from consts import AGGREGATOR_URL, SILENCE_TOKEN
+from data.audio import get_duration, is_file_silent
 from model.model import Model
 from model.speech_recognition import transcribe_audio
-from data.audio import get_duration, is_file_silent
-import os
-from threading import Lock 
-from pandas import DataFrame
-from consts import SILENCE_TOKEN, AGGREGATOR_URL
 
 audio_processing_lock = Lock()
 
