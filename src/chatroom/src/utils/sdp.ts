@@ -5,7 +5,7 @@ export function generateSDP(consumer: Consumer, rtpPort: number) {
   const { kind, rtpParameters } = consumer;
   const codecInfo = getCodecInfoFromRtpParameters(kind, rtpParameters);
 
-  return [
+  const sdpParts: string[] = [
     "v=0",
     "o=- 0 0 IN IP4 127.0.0.1",
     "s=mediasoup",
@@ -16,7 +16,15 @@ export function generateSDP(consumer: Consumer, rtpPort: number) {
       codecInfo.clockRate
     }${codecInfo.channels ? "/" + codecInfo.channels : ""}`,
     "a=sendonly",
-  ].join("\n");
+  ];
+
+  if (kind === "video") {
+    const resolution =
+      rtpParameters.codecs[0].parameters?.resolution || "640x480";
+    sdpParts.push(`a=video-size:${resolution}`);
+  }
+
+  return sdpParts.join("\n");
 }
 
 function getCodecInfoFromRtpParameters(
