@@ -1,4 +1,4 @@
-import { ChildProcess, spawn } from "child_process";
+import { spawn } from "child_process";
 import {
   Router,
   Producer,
@@ -12,12 +12,13 @@ import { transports } from "./mediasoup.js";
 import { getFreeUdpPort } from "../utils/ports.js";
 import { generateSDP } from "../utils/sdp.js";
 import { uploadForAnalysis } from "../analysis/upload.js";
+import { logError, logFFmpeg, logInfo, logWarn } from "../utils/logs.js";
 
 export type RecorderEntry = {
-  ffmpeg: ReturnType<typeof spawn>;
   consumer: Consumer;
   transport: PlainTransport;
   sdpPath: string;
+  completionPromise: Promise<void>;
 };
 
 const activeRecordings = new Map<string, RecorderEntry[]>();
@@ -27,8 +28,9 @@ export async function startSessionRecording(
   sessionId: string,
   clients: string[]
 ) {
-  console.log(`Starting session ${sessionId} with clients:`, clients);
+  logInfo(`Starting session ${sessionId} with clients:`, clients);
 
+  const setupPromises: Promise<RecorderEntry>[] = [];
   const list: RecorderEntry[] = [];
 
   for (const clientId of clients) {
@@ -42,8 +44,12 @@ export async function startSessionRecording(
           const producer = producers[kind];
 
           if (producer) {
-            list.push(
-              await createProducerRecorder(
+            if (kind === "video") {
+              (producer as any).requestKeyFrame?.();
+            }
+
+            setupPromises.push(
+              createProducerRecorder(
                 router,
                 sessionId,
                 clientId,
@@ -57,7 +63,20 @@ export async function startSessionRecording(
     }
   }
 
+  logInfo(`Waiting for all ${setupPromises.length} recorders to initialize...`);
+  const recorders = await Promise.all(setupPromises);
+  list.push(...recorders);
+
+  logInfo(
+    "All recorders initialized. Resuming all consumers for synchronized start."
+  );
+
+  for (const recorder of list) {
+    await recorder.consumer.resume();
+  }
+
   activeRecordings.set(sessionId, list);
+  logInfo(`Recording for session ${sessionId} is now active.`);
 }
 
 async function createProducerRecorder(
@@ -81,9 +100,8 @@ async function createProducerRecorder(
   const consumer = await plainTransport.consume({
     producerId: producer.id,
     rtpCapabilities: router.rtpCapabilities,
-    paused: false,
+    paused: true,
   });
-  await consumer.resume();
 
   await plainTransport.connect({
     ip: "127.0.0.1",
@@ -101,17 +119,26 @@ async function createProducerRecorder(
   let ffmpegArgs: string[];
 
   if (kind === "audio") {
-    file = path.join(baseDir, `${kind}.wav`);
+    file = path.join(baseDir, `${kind}.mp3`);
     ffmpegArgs = [
       "-protocol_whitelist",
       "file,udp,rtp",
+      "-rtbufsize",
+      "20M",
+      "-max_delay",
+      "60000000",
+      "-fflags",
+      "+genpts",
       "-i",
       sdpPath,
       "-c:a",
-      "pcm_s16le",
-      "-fflags",
-      "+nobuffer",
-      "-vn",
+      "libmp3lame",
+      "-b:a",
+      "64k",
+      "-ac",
+      "1",
+      "-ar",
+      "48000",
       file,
     ];
   } else {
@@ -119,150 +146,193 @@ async function createProducerRecorder(
     ffmpegArgs = [
       "-protocol_whitelist",
       "file,udp,rtp",
-      "-err_detect",
-      "ignore_err",
+      "-f",
+      "sdp",
+      "-rtbufsize",
+      "20M",
+      "-max_delay",
+      "60000000",
+      "-analyzeduration",
+      "1M",
+      "-probesize",
+      "1M",
+      "-fflags",
+      "+genpts",
       "-i",
       sdpPath,
       "-c:v",
-      "libvpx-vp9",
-      "-deadline",
-      "realtime",
-      "-fflags",
-      "+nobuffer",
+      "copy",
+      "-vsync",
+      "cfr",
       "-flags",
       "+global_header",
-      "-vf",
-      "scale=iw:ih",
       "-an",
       file,
     ];
   }
 
-  console.log(`Starting ffmpeg: ${file}`);
+  logInfo(`Starting ffmpeg: ${file} (Awaiting consumer resume)`);
   const ffmpeg = spawn("ffmpeg", ffmpegArgs);
 
   if (process.env.DEBUG === "true") {
     ffmpeg.stderr.on("data", (data) =>
-      console.log(`[FFmpeg ${kind}]`, data.toString())
+      logFFmpeg(kind, sessionId, clientId, data.toString())
     );
   }
 
-  ffmpeg.on("close", (code) => {
-    console.log(`ffmpeg finished with code ${code} for file ${file}`);
+  let resolveCompletion: () => void;
+  const completionPromise = new Promise<void>((resolve) => {
+    resolveCompletion = resolve;
+  });
 
-    try {
-      if (!consumer.closed) {
-        consumer.close();
-      }
-    } catch {
-      console.log(`Could not close consumer ${consumer.id}`);
+  ffmpeg.on("close", async (code) => {
+    logInfo(`ffmpeg finished with code ${code} for file ${file}`);
+    if (!consumer.closed) {
+      consumer.close();
     }
 
-    try {
-      if (!plainTransport.closed) {
-        plainTransport.close();
-      }
-    } catch {
-      console.log(`Could not close transport ${plainTransport.id}`);
+    if (!plainTransport.closed) {
+      plainTransport.close();
     }
 
     try {
       fs.unlinkSync(sdpPath);
-
-      console.log(`Cleaned up SDP: ${sdpPath}`);
-    } catch (error) {
-      console.warn(`Could not delete SDP: ${sdpPath}`, error);
+    } catch {
+      logWarn(`Failed to delete SDP: ${sdpPath}`);
     }
 
     if (!fs.existsSync(file)) {
-      console.error(`Skipping analysis — file does not exist: ${file}`);
+      logError(`File missing: ${file}`);
+      resolveCompletion();
+
       return;
     }
 
-    uploadForAnalysis({
-      sessionId,
-      clientId,
-      file,
-      kind,
-    }).finally(() => {
-      fs.unlink(file, (error) => {
-        if (error) {
-          console.error(`Failed to delete file ${file}`, error);
-        }
+    if (kind === "video") {
+      logInfo(`Starting post-processing resize for ${file}...`);
+
+      const originalFile = file;
+      const fixedFile = path.join(path.dirname(file), "video_fixed.webm");
+
+      const resizeArgs = [
+        "-nostdin",
+        "-y",
+        "-i",
+        originalFile,
+        "-vf",
+        "scale=iw:ih:eval=init",
+        "-c:v",
+        "libvpx-vp9",
+        "-deadline",
+        "realtime",
+        "-cpu-used",
+        "8",
+        "-row-mt",
+        "1",
+        "-threads",
+        "8",
+        "-crf",
+        "45",
+        "-b:v",
+        "0",
+        "-an",
+        fixedFile,
+      ];
+
+      await new Promise<void>((resolve, reject) => {
+        const resizeFFmpeg = spawn("ffmpeg", resizeArgs);
+        resizeFFmpeg.on("error", (err) => {
+          logError("Resize FFmpeg failed to start:", err);
+          reject(err);
+        });
+
+        resizeFFmpeg.on("close", (resizeCode) => {
+          if (resizeCode === 0) {
+            logInfo(
+              `Resize successful, replacing ${originalFile} with ${fixedFile}.`
+            );
+
+            try {
+              fs.renameSync(fixedFile, originalFile);
+              resolve();
+            } catch (e) {
+              logError("Failed to rename fixed file:", e);
+              reject(e);
+            }
+          } else {
+            logError(
+              `Resize failed with code ${resizeCode}. Keeping original file.`
+            );
+            reject(new Error(`Resize failed with code ${resizeCode}`));
+          }
+        });
+      }).catch((err) => {
+        logError("Post-processing failed, continuing with original file.", err);
       });
-    });
+    }
+
+    uploadForAnalysis({ sessionId, clientId, file, kind })
+      .then(() => {
+        fs.unlink(file, (error) => {
+          if (error) {
+            logError(`Failed to delete ${file}`, error);
+          } else {
+            logInfo(`Successfully deleted ${file} after upload`);
+          }
+
+          resolveCompletion();
+        });
+      })
+      .catch((err) => {
+        logError(`Upload failed for ${file}, file preserved`, err);
+        resolveCompletion();
+      });
   });
 
   return {
-    ffmpeg,
     consumer,
     transport: plainTransport,
     sdpPath,
+    completionPromise,
   };
 }
 
-export function stopSessionRecording(sessionId: string) {
+export async function stopSessionRecording(sessionId: string) {
   const list = activeRecordings.get(sessionId);
 
   if (!list) {
-    console.warn(`No recordings to stop for session ${sessionId}`);
-
     return;
   }
 
-  console.log(`Stopping recording for session ${sessionId}`);
+  logInfo(`Stopping recording for session ${sessionId}`);
 
-  for (const { ffmpeg, consumer, transport } of list) {
-    try {
-      gracefulStop(ffmpeg);
-    } catch (error) {
-      console.error("Error killing ffmpeg:", error);
+  const terminationPromises: Promise<void>[] = [];
+
+  for (const { consumer, completionPromise, transport } of list) {
+    terminationPromises.push(completionPromise);
+
+    if (!consumer.closed) {
+      consumer.close();
     }
 
-    try {
-      if (!consumer.closed) {
-        consumer.close();
-      }
-    } catch {
-      console.log(`Could not close consumer ${consumer.id}`);
-    }
-
-    try {
-      if (!transport.closed) {
-        transport.close();
-      }
-    } catch {
-      console.log(`Could not close transport ${transport.id}`);
+    if (!transport.closed) {
+      transport.close();
     }
   }
 
+  logInfo(
+    `Waiting for ${terminationPromises.length} recording processes to finish cleanup...`
+  );
+  await Promise.all(terminationPromises);
+
+  const sessionDir = path.join("recordings", sessionId);
+  try {
+    fs.rmdirSync(sessionDir);
+    logInfo(`Successfully deleted empty session directory: ${sessionDir}`);
+  } catch {
+    logWarn(`Session directory not empty or failed to delete: ${sessionDir}`);
+  }
+
   activeRecordings.delete(sessionId);
-}
-
-async function gracefulStop(ffmpeg: ChildProcess) {
-  return new Promise<void>((resolve) => {
-    const killTimer = setTimeout(() => {
-      if (!ffmpeg.killed) {
-        try {
-          ffmpeg.kill("SIGTERM");
-        } catch (error) {
-          console.warn(
-            "Failed to kill FFmpeg (it might already be closed):",
-            error
-          );
-        }
-      }
-    }, 5000);
-
-    ffmpeg.once("close", () => {
-      clearTimeout(killTimer);
-      resolve();
-    });
-
-    try {
-      ffmpeg.stdin?.write("q");
-    } catch (error) {
-      console.warn("Failed to send 'q' to FFmpeg stdin:", error);
-    }
-  });
+  logInfo(`Recording cleanup complete for session ${sessionId}.`);
 }
