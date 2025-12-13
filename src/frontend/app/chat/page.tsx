@@ -2,15 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import CallControls from "@/app/components/CallControls";
+import CallControls from "@/app/components/chat/CallControls";
 import { Button } from "../components/Button";
 
 import { checkMediaPermissions } from "./useMediaPermissions";
 import { useMediaSoup } from "./useMediasoup";
 import { useNavigationBlock } from "./useNavigationBlock";
-import CallVideo from "../components/CallVideo";
+import CallVideo from "../components/chat/CallVideo";
 import { twMerge } from "tailwind-merge";
 import { EmphasisText } from "../components/EmphasisText";
+import { ErrorDialog } from "../components/ErrorDialog";
 
 export default function Chat() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -141,21 +142,6 @@ function LeaveDialog({
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ErrorDialog({
-  message,
-  onReturn,
-}: {
-  message: string | null;
-  onReturn: () => void;
-}) {
-  return (
-    <div className="fixed top-0 left-0 z-50 flex h-full w-full flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-      <p className="mb-4">{message ?? "Something went wrong"}</p>
-      <Button onClick={onReturn}>Return Home</Button>
     </div>
   );
 }
