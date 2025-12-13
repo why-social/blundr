@@ -28,6 +28,7 @@ frontend-build:
       --platform linux/amd64
       --build-arg CHATROOM_URL=https://$CHATROOM_IP
       --build-arg CHATROOM_WS_URL=wss://$CHATROOM_IP
+      --build-arg ANALYSIS_IP_ADDRESS=$ANALYSIS_SERVICE_ADDRESS
       -t $IMAGE_NAME:latest
       --load .
     - docker save $IMAGE_NAME:latest -o frontend.tar
