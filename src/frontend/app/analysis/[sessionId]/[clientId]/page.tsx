@@ -39,7 +39,8 @@ export default function Analyze() {
         );
 
         if (analysisRequestRes.status === "ok") {
-          setAnalysis(analysisRequestRes.data.analysis.analysis);
+          setAnalysis(analysisRequestRes.data.analysis);
+
           clearInterval(intervalId);
         }
       } catch (error) {
