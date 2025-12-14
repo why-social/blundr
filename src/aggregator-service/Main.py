@@ -214,12 +214,7 @@ def parse_bullet_points(section):
 @app.get("/analyze")
 async def analyze_session(session_id: str, user_id: str):
     if session_id == "test" and user_id == "test":
-        return {
-            "session_id": session_id,
-            "requested_by": user_id,
-            "status": "completed",
-            "analysis": PREMADE_OUTPUT
-        }
+        return PREMADE_OUTPUT
     if session_id not in session_aggregate_cache:
         raise HTTPException(404, "Session not found")
     if user_id not in session_aggregate_cache[session_id]:
