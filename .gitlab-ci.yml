@@ -1,4 +1,5 @@
 stages:
+  - lint
   - build
   - push
   - deploy
@@ -6,3 +7,35 @@ stages:
 include:
   - local: "src/chatroom/.gitlab-ci.yml"
   - local: "src/frontend/.gitlab-ci.yml"
+
+lint:
+  stage: lint
+  image: python:3.12-slim
+  tags:
+    - docker
+  rules:
+    - if: $CI_COMMIT_BRANCH
+      changes:
+        compare_to: 'refs/heads/main'
+        paths:
+          - '**/*.py'
+
+  before_script:
+    - pip install ruff
+    - git config user.email "ci@gitlab.com"
+    - git config user.name "ci-bot"
+    - git remote set-url origin https://oauth2:$ACCESS_TOKEN@gitlab.com/${CI_PROJECT_PATH}.git
+    - git fetch
+    - git checkout $CI_COMMIT_BRANCH
+
+  script:
+    - ruff check --extend-select I --fix .
+    - ruff format .
+    - |
+      if [[ -n $(git status --porcelain) ]]; then
+        echo "Changes detected, committing and pushing..."
+        git commit -am "ci: ruff lint and format"
+        git push origin HEAD:$CI_COMMIT_BRANCH -o ci.skip
+      else
+        echo "No changes required!"
+      fi
