@@ -30,8 +30,6 @@ lint:
     - git config user.email "ci@gitlab.com"
     - git config user.name "ci-bot"
     - git remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@git.chalmers.se/${CI_PROJECT_PATH}.git
-    - git fetch
-    - git checkout ${CI_COMMIT_BRANCH}
 
   script:
     - ruff check --extend-select I --fix .
@@ -39,7 +37,7 @@ lint:
       if [[ -n $(git status --porcelain) ]]; then
         echo "Changes detected, committing and pushing..."
         git commit -am "ci: ruff lint"
-        git push origin HEAD:$CI_COMMIT_BRANCH -o ci.skip
+        git push origin HEAD:$CI_COMMIT_REF_NAME -o ci.skip
       else
         echo "No changes required!"
       fi
