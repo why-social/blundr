@@ -29,7 +29,7 @@ lint:
     - git checkout $CI_COMMIT_BRANCH
 
   script:
-    - ruff check --extend-select I --fix .
+    - ruff check --extend-select I,W191 --fix .
     - ruff format .
     - |
       if [[ -n $(git status --porcelain) ]]; then
