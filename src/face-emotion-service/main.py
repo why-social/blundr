@@ -11,7 +11,7 @@ app = FastAPI()
 AGGREGATOR_URL = os.environ.get("AGGREGATOR_URL", "http://localhost:42069/aggregator")
 TIMEOUT_FOR_AGGREGATOR_SERVICE = 10.0
 
-@app.get("/")
+@app.get("/face-emotion")
 def read_root():
 	return {"running": True}
 
@@ -40,7 +40,7 @@ def process_and_send(file_path: str, user_id: str, session_id: str):
 			if os.path.exists(file_path):
 				os.remove(file_path)
 
-@app.post("/predict-face-emotion")
+@app.post("/face-emotion/predict-face-emotion")
 async def process_video_endpoint(
 	background_tasks: BackgroundTasks,
 	user_id: Annotated[str, Form(...)],

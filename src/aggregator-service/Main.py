@@ -211,7 +211,7 @@ def parse_bullet_points(section):
     lines = [l.strip() for l in section.split("\n")]
     return [l[2:] for l in lines if l.startswith("- ")]
 
-@app.get("/analyze")
+@app.get("/aggregator/analyze")
 async def analyze_session(session_id: str, user_id: str):
     if session_id == "test" and user_id == "test":
         return PREMADE_OUTPUT
@@ -242,7 +242,7 @@ async def analyze_session(session_id: str, user_id: str):
     }
 
 
-@app.post("/aggregator")
+@app.post("/aggregator/aggregator")
 async def get_files(
     background_tasks: BackgroundTasks,
     session_id: str = Form(...),

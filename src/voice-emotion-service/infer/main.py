@@ -20,7 +20,7 @@ model = Model(Path("/etc/model.pth"))
 client = httpx.Client(timeout=None)
 
 
-@app.post("/predict-audio-emotion")
+@app.post("/voice-emotion/predict-audio-emotion")
 async def infer(
     background_tasks: BackgroundTasks,
     session_id: str = Form(...),
