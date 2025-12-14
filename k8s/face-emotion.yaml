@@ -25,7 +25,7 @@ spec:
             - containerPort: 42069
           env:
             - name: AGGREGATOR_URL
-              value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator"
+              value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator/aggregator"
 ---
 apiVersion: v1
 kind: Service
