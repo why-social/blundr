@@ -2,13 +2,6 @@ export interface AnalysisResponse {
   session_id: string;
   requested_by: string;
   status: string;
-  analysis: AnalysisWrapper;
-}
-
-export interface AnalysisWrapper {
-  session_id: string;
-  requested_by: string;
-  status: string;
   analysis: AnalysisContent;
 }
 
