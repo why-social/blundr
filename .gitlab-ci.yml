@@ -22,6 +22,7 @@ lint:
           - '.gitlab-ci.yml'
 
   before_script:
+    - echo "Token length is ${#ACCESS_TOKEN}"
     - apt-get update && apt-get install -y git
     - pip install ruff
     - git config user.email "ci@gitlab.com"
