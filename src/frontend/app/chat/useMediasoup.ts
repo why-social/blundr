@@ -29,8 +29,8 @@ export function useMediaSoup(
   const setup = useCallback(async () => {
     const stream = await navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
-      .catch((err) => {
-        console.error("Failed to get media:", err);
+      .catch((error) => {
+        console.error("Failed to get media:", error);
 
         return null;
       });
@@ -174,6 +174,12 @@ export function useMediaSoup(
         await resumeConsumer(audioConsumer.id);
         await resumeConsumer(videoConsumer.id);
 
+        receiveTransport = transport;
+
+        // "sleep" for a second to make sure the chatroom consumers
+        // have received some stream data (VM issue)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
         if (remoteVideoRef.current) {
           const remoteStream = new MediaStream();
 
@@ -183,8 +189,9 @@ export function useMediaSoup(
           remoteVideoRef.current.srcObject = remoteStream;
         }
 
-        receiveTransport = transport;
-        setQueuing(false);
+        requestAnimationFrame(() => {
+          setQueuing(false);
+        });
       },
 
       onPeerLeft: () => {

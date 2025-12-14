@@ -1,4 +1,4 @@
-import { spawn } from "child_process";
+import { spawn, execSync } from "child_process";
 import {
   Router,
   Producer,
@@ -19,6 +19,11 @@ export type RecorderEntry = {
   transport: PlainTransport;
   sdpPath: string;
   completionPromise: Promise<void>;
+  startFFmpeg: () => void;
+  clientId: string;
+  file: string;
+  kind: MediaKind;
+  success: boolean;
 };
 
 const activeRecordings = new Map<string, RecorderEntry[]>();
@@ -31,7 +36,6 @@ export async function startSessionRecording(
   logInfo(`Starting session ${sessionId} with clients:`, clients);
 
   const setupPromises: Promise<RecorderEntry>[] = [];
-  const list: RecorderEntry[] = [];
 
   for (const clientId of clients) {
     const entry = transports.get(clientId);
@@ -44,10 +48,6 @@ export async function startSessionRecording(
           const producer = producers[kind];
 
           if (producer) {
-            if (kind === "video") {
-              (producer as any).requestKeyFrame?.();
-            }
-
             setupPromises.push(
               createProducerRecorder(
                 router,
@@ -65,17 +65,24 @@ export async function startSessionRecording(
 
   logInfo(`Waiting for all ${setupPromises.length} recorders to initialize...`);
   const recorders = await Promise.all(setupPromises);
-  list.push(...recorders);
 
   logInfo(
     "All recorders initialized. Resuming all consumers for synchronized start."
   );
 
-  for (const recorder of list) {
+  for (const recorder of recorders) {
     await recorder.consumer.resume();
   }
 
-  activeRecordings.set(sessionId, list);
+  // give consumers time to receive data before starting FFmpeg
+  // this is supposed to help a little when running in a VM
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  for (const recorder of recorders) {
+    recorder.startFFmpeg();
+  }
+
+  activeRecordings.set(sessionId, recorders);
   logInfo(`Recording for session ${sessionId} is now active.`);
 }
 
@@ -108,11 +115,8 @@ async function createProducerRecorder(
     port: rtpPort,
   });
 
-  // an SDP file is needed for ffmpeg to be able to
-  // create the file
   const sdp = generateSDP(consumer, rtpPort);
   const sdpPath = path.join(baseDir, `${kind}.sdp`);
-
   fs.writeFileSync(sdpPath, sdp);
 
   let file: string;
@@ -123,12 +127,6 @@ async function createProducerRecorder(
     ffmpegArgs = [
       "-protocol_whitelist",
       "file,udp,rtp",
-      "-rtbufsize",
-      "20M",
-      "-max_delay",
-      "60000000",
-      "-fflags",
-      "+genpts",
       "-i",
       sdpPath,
       "-c:a",
@@ -146,154 +144,80 @@ async function createProducerRecorder(
     ffmpegArgs = [
       "-protocol_whitelist",
       "file,udp,rtp",
-      "-f",
-      "sdp",
-      "-rtbufsize",
-      "20M",
-      "-max_delay",
-      "60000000",
-      "-analyzeduration",
-      "5M",
-      "-probesize",
-      "5M",
-      "-fflags",
-      "+genpts",
       "-i",
       sdpPath,
       "-c:v",
       "copy",
-      "-vsync",
-      "cfr",
-      "-flags",
-      "+global_header",
       "-an",
+      "-vsync",
+      "vfr",
       file,
     ];
   }
 
-  logInfo(`Starting ffmpeg: ${file} (Awaiting consumer resume)`);
-  const ffmpeg = spawn("ffmpeg", ffmpegArgs);
-
-  if (process.env.DEBUG === "true") {
-    ffmpeg.stderr.on("data", (data) =>
-      logFFmpeg(kind, sessionId, clientId, data.toString())
-    );
-  }
-
-  let resolveCompletion: () => void;
+  let ffmpegProcess: ReturnType<typeof spawn> | null = null;
+  let resolveCompletion: () => void = () => {};
   const completionPromise = new Promise<void>((resolve) => {
     resolveCompletion = resolve;
   });
 
-  ffmpeg.on("close", async (code) => {
-    logInfo(`ffmpeg finished with code ${code} for file ${file}`);
-    if (!consumer.closed) {
-      consumer.close();
+  let success = true;
+
+  const startFFmpeg = () => {
+    logInfo(`Starting ffmpeg: ${file} (Awaiting consumer resume)`);
+
+    ffmpegProcess = spawn("ffmpeg", ffmpegArgs);
+
+    if (process.env.DEBUG === "true") {
+      ffmpegProcess.stderr?.on("data", (data) =>
+        logFFmpeg(kind, sessionId, clientId, data.toString())
+      );
     }
 
-    if (!plainTransport.closed) {
-      plainTransport.close();
-    }
+    ffmpegProcess.on("close", (code) => {
+      try {
+        if (code !== 0) {
+          logError(`FFmpeg exited with code ${code} for file ${file}`);
+          success = false;
+        }
 
-    try {
-      fs.unlinkSync(sdpPath);
-    } catch {
-      logWarn(`Failed to delete SDP: ${sdpPath}`);
-    }
+        if (!consumer.closed) {
+          consumer.close();
+        }
 
-    if (!fs.existsSync(file)) {
-      logError(`File missing: ${file}`);
-      resolveCompletion();
+        if (!plainTransport.closed) {
+          plainTransport.close();
+        }
 
-      return;
-    }
+        try {
+          fs.unlinkSync(sdpPath);
+        } catch {
+          logWarn(`Failed to delete SDP: ${sdpPath}`);
+        }
 
-    if (kind === "video") {
-      logInfo(`Starting post-processing resize for ${file}...`);
-
-      const originalFile = file;
-      const fixedFile = path.join(path.dirname(file), "video_fixed.webm");
-
-      const resizeArgs = [
-        "-nostdin",
-        "-y",
-        "-i",
-        originalFile,
-        "-vf",
-        "scale=iw:ih:eval=init",
-        "-c:v",
-        "libvpx-vp9",
-        "-deadline",
-        "realtime",
-        "-cpu-used",
-        "8",
-        "-row-mt",
-        "1",
-        "-threads",
-        "8",
-        "-crf",
-        "45",
-        "-b:v",
-        "0",
-        "-an",
-        fixedFile,
-      ];
-
-      await new Promise<void>((resolve, reject) => {
-        const resizeFFmpeg = spawn("ffmpeg", resizeArgs);
-        resizeFFmpeg.on("error", (err) => {
-          logError("Resize FFmpeg failed to start:", err);
-          reject(err);
-        });
-
-        resizeFFmpeg.on("close", (resizeCode) => {
-          if (resizeCode === 0) {
-            logInfo(
-              `Resize successful, replacing ${originalFile} with ${fixedFile}.`
-            );
-
-            try {
-              fs.renameSync(fixedFile, originalFile);
-              resolve();
-            } catch (e) {
-              logError("Failed to rename fixed file:", e);
-              reject(e);
-            }
-          } else {
-            logError(
-              `Resize failed with code ${resizeCode}. Keeping original file.`
-            );
-            reject(new Error(`Resize failed with code ${resizeCode}`));
-          }
-        });
-      }).catch((err) => {
-        logError("Post-processing failed, continuing with original file.", err);
-      });
-    }
-
-    uploadForAnalysis({ sessionId, clientId, file, kind })
-      .then(() => {
-        fs.unlink(file, (error) => {
-          if (error) {
-            logError(`Failed to delete ${file}`, error);
-          } else {
-            logInfo(`Successfully deleted ${file} after upload`);
-          }
-
-          resolveCompletion();
-        });
-      })
-      .catch((err) => {
-        logError(`Upload failed for ${file}, file preserved`, err);
+        if (!fs.existsSync(file)) {
+          logError(`File missing: ${file}`);
+          success = false;
+        }
+      } catch (err) {
+        logError("Unexpected error in FFmpeg close handler", err);
+        success = false;
+      } finally {
         resolveCompletion();
-      });
-  });
+      }
+    });
+  };
 
   return {
     consumer,
     transport: plainTransport,
     sdpPath,
     completionPromise,
+    startFFmpeg,
+    clientId,
+    file,
+    kind,
+    success,
   };
 }
 
@@ -325,13 +249,169 @@ export async function stopSessionRecording(sessionId: string) {
   );
   await Promise.all(terminationPromises);
 
-  const sessionDir = path.join("recordings", sessionId);
-  try {
-    fs.rmdirSync(sessionDir);
-    logInfo(`Successfully deleted empty session directory: ${sessionDir}`);
-  } catch {
-    logWarn(`Session directory not empty or failed to delete: ${sessionDir}`);
+  const videoRecordings = list.filter((r) => r.kind === "video");
+
+  let longestDuration = 0;
+  const durations: Record<string, number> = {};
+
+  for (const recording of list) {
+    try {
+      const duration = parseFloat(
+        execSync(
+          `ffprobe -v error -show_entries format=duration -of csv=p=0 "${recording.file}"`
+        ).toString()
+      );
+      durations[recording.file] = duration;
+
+      if (duration > longestDuration) {
+        longestDuration = duration;
+      }
+    } catch (error) {
+      logError(`Failed to get duration for ${recording.file}`, error);
+      recording.success = false;
+    }
   }
+
+  for (const video of videoRecordings) {
+    const originalFile = video.file;
+    const duration = durations[originalFile] || longestDuration;
+
+    if (!video.success) {
+      const tempFile = path.join(
+        path.dirname(originalFile),
+        "video_black.webm"
+      );
+
+      const ffmpegArgs = [
+        "-y",
+        "-f",
+        "lavfi",
+        "-i",
+        `color=size=640x360:rate=30:color=black`,
+        "-t",
+        `${duration}`,
+        "-c:v",
+        "libvpx-vp9",
+        "-b:v",
+        "0",
+        "-an",
+        tempFile,
+      ];
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const blackFFmpeg = spawn("ffmpeg", ffmpegArgs);
+
+          blackFFmpeg.on("error", (error) => reject(error));
+
+          blackFFmpeg.on("close", (code) => {
+            if (code === 0) {
+              fs.renameSync(tempFile, originalFile);
+              video.success = true;
+
+              resolve();
+            } else {
+              reject(new Error(`Failed to generate black video: ${code}`));
+            }
+          });
+        });
+        logInfo(`Replaced failed video ${originalFile} with black placeholder`);
+      } catch (err) {
+        logError(`Could not create black video for ${originalFile}`, err);
+        video.success = false;
+      }
+    } else {
+      const padDuration = longestDuration - (durations[originalFile] || 0);
+      const vfArgs =
+        padDuration > 0.05
+          ? `tpad=start_duration=${padDuration}:start_mode=add`
+          : "null";
+
+      const tempFile = path.join(
+        path.dirname(originalFile),
+        "video_fixed.webm"
+      );
+
+      const resizeArgs = [
+        "-nostdin",
+        "-y",
+        "-i",
+        originalFile,
+        "-vf",
+        vfArgs,
+        "-c:v",
+        "libvpx-vp9",
+        "-deadline",
+        "realtime",
+        "-cpu-used",
+        "8",
+        "-row-mt",
+        "1",
+        "-threads",
+        "8",
+        "-crf",
+        "45",
+        "-b:v",
+        "0",
+        "-an",
+        tempFile,
+      ];
+
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const resizeFFmpeg = spawn("ffmpeg", resizeArgs);
+
+          resizeFFmpeg.on("error", (error) => reject(error));
+
+          resizeFFmpeg.on("close", (code) => {
+            if (code === 0) {
+              fs.renameSync(tempFile, originalFile);
+
+              resolve();
+            } else {
+              reject(new Error(`Resize/pad failed with code ${code}`));
+            }
+          });
+        });
+
+        logInfo(`Post-processed video ${originalFile} successfully`);
+        video.success = true;
+      } catch (err) {
+        logError(`Post-processing failed for video ${originalFile}`, err);
+        video.success = false;
+      }
+    }
+  }
+
+  const finalSucceeded = list.every((recording) => recording.success);
+
+  if (finalSucceeded) {
+    logInfo(`All recordings succeeded for session ${sessionId}. Uploading...`);
+
+    const uploadPromises = list.map((recording) =>
+      uploadForAnalysis({
+        sessionId,
+        clientId: recording.clientId,
+        file: recording.file,
+        kind: recording.kind,
+      }).catch((err) => {
+        logError(
+          `Upload failed for ${recording.kind} of ${recording.clientId}:`,
+          err
+        );
+      })
+    );
+
+    await Promise.all(uploadPromises);
+  } else {
+    logWarn(
+      `One or more recordings failed after post-processing for session ${sessionId}. Skipping upload.`
+    );
+  }
+
+  const sessionDir = path.join("recordings", sessionId);
+  fs.rmSync(sessionDir, { recursive: true, force: true });
+  logInfo(`Deleted session directory: ${sessionDir}`);
 
   activeRecordings.delete(sessionId);
   logInfo(`Recording cleanup complete for session ${sessionId}.`);
