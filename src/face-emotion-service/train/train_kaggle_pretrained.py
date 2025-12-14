@@ -2,12 +2,12 @@
 
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
-from torchvision import datasets, models
-from torch.utils.data import DataLoader, random_split
 import torch.optim as optim
-from tqdm import tqdm
+import torchvision.transforms as transforms
 from torch.amp import autocast
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, models
+from tqdm import tqdm
 
 VAL_FRACTION = 0.2
 BATCH_SIZE = 192

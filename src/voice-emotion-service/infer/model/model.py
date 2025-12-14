@@ -7,11 +7,10 @@ from common.config.model_config import ModelConfig
 from common.model.crnn_model import CRNNModel
 from common.utils.audio_processing import AudioProcessor
 from common.utils.transformations import standardize_length
-from torch.nn.functional import softmax
-from tqdm import tqdm
-
 from consts import SILENCE_TOKEN
 from data.segment import load_transcribed_segments
+from torch.nn.functional import softmax
+from tqdm import tqdm
 
 
 class Model:

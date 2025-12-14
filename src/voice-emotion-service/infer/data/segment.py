@@ -5,7 +5,6 @@ from typing import List
 import numpy as np
 import pandas as pd
 from common.config.dataset_config import DatasetConfig
-
 from consts import SILENCE_TOKEN
 
 

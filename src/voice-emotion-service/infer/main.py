@@ -5,13 +5,12 @@ from pathlib import Path
 from threading import Lock
 
 import httpx
-from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
-from pandas import DataFrame
-
 from consts import AGGREGATOR_URL, SILENCE_TOKEN
 from data.audio import get_duration, is_file_silent
+from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
 from model.model import Model
 from model.speech_recognition import transcribe_audio
+from pandas import DataFrame
 
 audio_processing_lock = Lock()
 

@@ -1,9 +1,10 @@
-from fastapi import FastAPI, Form, HTTPException, BackgroundTasks
-from aggregator import aggregate_files, extract_section_llm, User
 import asyncio
-import httpx
 import json
 import os
+
+import httpx
+from aggregator import User, aggregate_files, extract_section_llm
+from fastapi import BackgroundTasks, FastAPI, Form, HTTPException
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434/api/generate")
 PREMADE_OUTPUT = {
