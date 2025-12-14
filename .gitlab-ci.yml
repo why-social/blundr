@@ -1,5 +1,5 @@
 stages:
-  - py-format-and-lint
+  - py-lint
   - build
   - push
   - deploy
@@ -8,8 +8,8 @@ include:
   - local: "src/chatroom/.gitlab-ci.yml"
   - local: "src/frontend/.gitlab-ci.yml"
 
-format-and-lint:
-  stage: py-format-and-lint
+lint:
+  stage: py-lint
   image: python:3.12-slim
   tags:
     - docker
@@ -34,12 +34,11 @@ format-and-lint:
     - git checkout ${CI_COMMIT_BRANCH}
 
   script:
-    - ruff format .
-    - ruff check --extend-select I,W191 --fix .
+    - ruff check --extend-select I --fix .
     - |
       if [[ -n $(git status --porcelain) ]]; then
         echo "Changes detected, committing and pushing..."
-        git commit -am "ci: ruff lint and format"
+        git commit -am "ci: ruff lint"
         git push origin HEAD:$CI_COMMIT_BRANCH -o ci.skip
       else
         echo "No changes required!"
