@@ -19,8 +19,10 @@ lint:
         compare_to: 'refs/heads/main'
         paths:
           - '**/*.py'
+          - '.gitlab-ci.yml'
 
   before_script:
+    - apt-get update && apt-get install -y git
     - pip install ruff
     - git config user.email "ci@gitlab.com"
     - git config user.name "ci-bot"
