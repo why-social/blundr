@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Form, UploadFile, File, HTTPException, BackgroundTasks
+from fastapi import FastAPI, Form, HTTPException, BackgroundTasks
 from aggregator import aggregate_files, extract_section_llm, User
 import asyncio
 import httpx
@@ -180,8 +180,8 @@ async def call_llm(transcription: dict, user_id: str):
     
     parsed_output = {
         "highlights": parse_highlights(highlights),
-        "strengths": [] if strengths == None else parse_bullet_points(strengths),
-        "improvements": [] if improvements == None else parse_bullet_points(improvements)
+        "strengths": [] if strengths is None else parse_bullet_points(strengths),
+        "improvements": [] if improvements is None else parse_bullet_points(improvements)
     }
     return parsed_output
 
@@ -202,14 +202,14 @@ def parse_highlights(text_block):
                 try:
                     obj = json.loads(buffer)
                     highlights.append(obj)
-                except:
+                except Exception:
                     pass
                 buffer = ""
     return highlights
 
 def parse_bullet_points(section):
-    lines = [l.strip() for l in section.split("\n")]
-    return [l[2:] for l in lines if l.startswith("- ")]
+    lines = [line.strip() for line in section.split("\n")]
+    return [line[2:] for line in lines if line.startswith("- ")]
 
 @app.get("/analyze")
 async def analyze_session(session_id: str, user_id: str):

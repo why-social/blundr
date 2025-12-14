@@ -1,13 +1,10 @@
 import cv2
-import math
 import torch
 import torchvision.transforms as transforms
 from torchvision import models
 import torch.nn as nn
 from PIL import Image
 import numpy as np
-import time
-import os
 
 PREDICTION_INTERVAL = 0.5  # seconds
 VIDEO_FILE_PATH = "video.webm"

@@ -1,4 +1,5 @@
 import torch
+from torch import nn
 from common.config.dataset_config import AugmentsConfig, DatasetConfig
 from common.config.model_config import ModelConfig
 from common.model.crnn_model import CRNNModel

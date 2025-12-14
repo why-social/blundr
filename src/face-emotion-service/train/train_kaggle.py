@@ -1,5 +1,6 @@
 # Training script: ResNet34 from scratch (no pretrained weights)
 import torch
+from torch.amp import autocast
 import torch.nn as nn
 import torchvision.transforms as transforms
 from torchvision import datasets, models
@@ -100,7 +101,6 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
 )
 
 # Training loop
-from torch.amp import autocast
 
 best_acc = 0.0
 for epoch in range(EPOCHS):
