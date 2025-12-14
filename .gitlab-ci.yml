@@ -22,14 +22,13 @@ lint:
           - '.gitlab-ci.yml'
 
   before_script:
-    - echo "Token length is ${#ACCESS_TOKEN}"
     - apt-get update && apt-get install -y git
     - pip install ruff
     - git config user.email "ci@gitlab.com"
     - git config user.name "ci-bot"
-    - git remote set-url origin https://oauth2:$ACCESS_TOKEN@gitlab.com/${CI_PROJECT_PATH}.git
+    - git remote set-url origin https://gitlab-ci-token:${CI_JOB_TOKEN}@git.chalmers.se/${CI_PROJECT_PATH}.git
     - git fetch
-    - git checkout $CI_COMMIT_BRANCH
+    - git checkout ${CI_COMMIT_BRANCH}
 
   script:
     - ruff check --extend-select I,W191 --fix .
