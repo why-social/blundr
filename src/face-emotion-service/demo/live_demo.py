@@ -1,12 +1,12 @@
-import cv2
-import torch
-import torchvision.transforms as transforms
-from torchvision import models
-import torch.nn as nn
-from PIL import Image
-import numpy as np
 import time
 
+import cv2
+import numpy as np
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+from PIL import Image
+from torchvision import models
 
 # Settings
 MODEL_PATH = "../models/emotion_model.pt"

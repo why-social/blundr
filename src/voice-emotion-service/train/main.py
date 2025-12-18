@@ -7,6 +7,7 @@ from dataset.dataloaders import create_dataloaders
 from dataset.download import download_datasets
 from dataset.merge import merge_datasets
 from dataset.spec_dataset import SpecDataset
+from torch import nn
 
 DATASET_CONFIG = DatasetConfig()
 AUGMENTS_CONFIG = AugmentsConfig()

@@ -1,7 +1,8 @@
-from collections import namedtuple
-import pandas as pd
 import io
 import re
+from collections import namedtuple
+
+import pandas as pd
 
 User = namedtuple("User", ["id", "data"])
 

@@ -1,11 +1,12 @@
-import cv2
-import torch
-import torchvision.transforms as transforms
-from torchvision import models
-import torch.nn as nn
-from PIL import Image
-import numpy as np
 import os
+
+import cv2
+import numpy as np
+import torch
+import torch.nn as nn
+import torchvision.transforms as transforms
+from PIL import Image
+from torchvision import models
 
 MODE = "prod"
 
@@ -75,7 +76,6 @@ def process_video(file_path):
 	fps = vidcap.get(cv2.CAP_PROP_FPS)
 	if fps == 0 or np.isnan(fps):
 		fps = 30  # fallback for broken streams
-	frame_step = int(fps * PREDICTION_INTERVAL)
 	success, frame = vidcap.read()
 	frame_count = 0
 	next_time = 0.0

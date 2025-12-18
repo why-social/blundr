@@ -2,11 +2,11 @@
 
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
-from torchvision import datasets, models
-from torch.utils.data import DataLoader, random_split
 import torch.optim as optim
-from torch.optim.lr_scheduler import StepLR
+import torchvision.transforms as transforms
+from torch.amp import autocast
+from torch.utils.data import DataLoader, random_split
+from torchvision import datasets, models
 from tqdm import tqdm
 
 VAL_FRACTION = 0.2
@@ -149,8 +149,6 @@ scheduler = torch.optim.lr_scheduler.OneCycleLR(
 )
 epochs_full = EPOCHS_FULL
 
-# Use autocast for mixed precision training
-from torch.amp import autocast
 
 best_acc = 0.0
 for epoch in range(EPOCHS_FULL):

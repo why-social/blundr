@@ -3,9 +3,8 @@ from pathlib import Path
 from typing import Dict
 
 import whisper as ws
-from pandas import DataFrame
-
 from consts import MIN_PAUSE, SILENCE_TOKEN
+from pandas import DataFrame
 
 model = ws.load_model("base", device="cpu")
 

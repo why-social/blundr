@@ -1,8 +1,12 @@
-from fastapi import FastAPI, File, UploadFile, Form, BackgroundTasks
-from process_video import process_video
-from typing import Annotated
-import httpx, tempfile, shutil, os
+import os
+import shutil
+import tempfile
 from threading import Lock
+from typing import Annotated
+
+import httpx
+from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
+from process_video import process_video
 
 video_processing_lock = Lock()
 
