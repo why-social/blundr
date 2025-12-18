@@ -25,6 +25,5 @@ COPY infer/ /app/infer/
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --locked
 
-COPY train/out/model.pth /etc/
 CMD ["/app/infer/.venv/bin/fastapi", "run", "main.py", "--port", "42069", "--host", "0.0.0.0"]
 

@@ -1,6 +1,10 @@
 services:
-    ve-infer:
-        image: ve-infer
-        build: .
-        ports:
-            - 42069:42069
+  ve-infer:
+    image: ve-infer
+    build: .
+    volumes:
+      - ./train/out:/etc/models:ro
+    environment:
+      - MODEL_PATH=/etc/models/model.pth
+    ports:
+      - 42069:42069
