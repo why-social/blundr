@@ -20,6 +20,8 @@ spec:
         gke-gcsfuse/volumes: "true"
         gke-gcsfuse/cpu-request: "50m"
     spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: swimming-pool
       serviceAccountName: fer-sa
       terminationGracePeriodSeconds: 600 # avoid terminating background jobs on update
       containers:

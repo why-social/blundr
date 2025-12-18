@@ -17,6 +17,8 @@ spec:
         app: blundr
         component: aggregator
     spec:
+      nodeSelector:
+        cloud.google.com/gke-nodepool: swimming-pool
       containers:
         - name: aggregator
           image: europe-north2-docker.pkg.dev/blundr/blundr-repo/aggregator:latest
