@@ -3,6 +3,6 @@
 **/.venv/
 **/build/
 **/dist/
-common/out/
-infer/out/
+**/out/
 **/test/
+**/.ruff_cache

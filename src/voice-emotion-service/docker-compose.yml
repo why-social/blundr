@@ -1,6 +1,6 @@
 services:
-  ve-infer:
-    image: ve-infer
+  ver-service:
+    image: ver
     build: .
     volumes:
       - ./train/out:/etc/models:ro
