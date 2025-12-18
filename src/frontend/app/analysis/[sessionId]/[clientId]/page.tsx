@@ -71,7 +71,7 @@ export default function Analyze() {
           <AmbientCue
             images={[
               "/blunder.svg",
-              "/book.svg",
+              "/textbook.svg",
               "/brilliant.svg",
               "/excellent.svg",
               "/great.svg",

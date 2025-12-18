@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { twMerge } from "tailwind-merge";
+import { Annotation } from "../types";
 
 export function Message({
   message,
@@ -7,7 +8,7 @@ export function Message({
   own,
 }: {
   message: string;
-  annotation?: string;
+  annotation?: Annotation;
   own?: boolean;
 }) {
   return (
@@ -24,7 +25,7 @@ export function Message({
           "before:pointer-events-none before:absolute before:inset-0 before:-z-10 before:rounded-md before:bg-linear-to-r before:from-pink-600 before:via-fuchsia-400 before:to-red-400 before:opacity-90 before:blur-xl",
       )}
     >
-      <div className={own ? "flex justify-end font-semibold" : ""}>
+      <div className={twMerge("font-semibold", own ? "flex justify-end" : "")}>
         {own ? (
           <span className="text-lime-800">You</span>
         ) : (

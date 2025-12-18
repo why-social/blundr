@@ -16,15 +16,17 @@ export interface Highlight {
   main_user: string;
   main_message: string;
   description: string;
-  annotation:
-    | "great"
-    | "excellent"
-    | "mistake"
-    | "blunder"
-    | "book"
-    | "brilliant";
+  annotation: Annotation;
   context_block: ContextBlock[];
 }
+
+export type Annotation =
+  | "great"
+  | "excellent"
+  | "mistake"
+  | "blunder"
+  | "textbook"
+  | "brilliant";
 
 export interface ContextBlock {
   timestamp: string;
