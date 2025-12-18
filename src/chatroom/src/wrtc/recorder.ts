@@ -71,15 +71,19 @@ export async function startSessionRecording(
   );
 
   for (const recorder of recorders) {
-    await recorder.consumer.resume();
+    recorder.startFFmpeg();
   }
 
-  // give consumers time to receive data before starting FFmpeg
+  // wait for FFmpeg to spin up and bind the UDP ports
   // this is supposed to help a little when running in a VM
   await new Promise((resolve) => setTimeout(resolve, 500));
 
   for (const recorder of recorders) {
-    recorder.startFFmpeg();
+    await recorder.consumer.resume();
+
+    if (recorder.kind === "video") {
+      await recorder.consumer.requestKeyFrame();
+    }
   }
 
   activeRecordings.set(sessionId, recorders);
@@ -255,20 +259,24 @@ export async function stopSessionRecording(sessionId: string) {
   const durations: Record<string, number> = {};
 
   for (const recording of list) {
-    try {
-      const duration = parseFloat(
-        execSync(
-          `ffprobe -v error -show_entries format=duration -of csv=p=0 "${recording.file}"`
-        ).toString()
-      );
-      durations[recording.file] = duration;
-
-      if (duration > longestDuration) {
-        longestDuration = duration;
-      }
-    } catch (error) {
-      logError(`Failed to get duration for ${recording.file}`, error);
+    if (!fs.existsSync(recording.file)) {
       recording.success = false;
+    } else {
+      try {
+        const duration = parseFloat(
+          execSync(
+            `ffprobe -v error -show_entries format=duration -of csv=p=0 "${recording.file}"`
+          ).toString()
+        );
+        durations[recording.file] = duration;
+
+        if (duration > longestDuration) {
+          longestDuration = duration;
+        }
+      } catch (error) {
+        logError(`Failed to get duration for ${recording.file}`, error);
+        recording.success = false;
+      }
     }
   }
 
