@@ -25,6 +25,7 @@ class Model:
             num_classes=self.data_config.n_classes,
         ).to(self.model_config.device)
 
+        print(f"Loading model from {str(model_path)}")
         self.model.load_state_dict(
             torch.load(model_path, map_location=self.model_config.device)
         )

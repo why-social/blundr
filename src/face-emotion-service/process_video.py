@@ -10,9 +10,10 @@ MODE = "prod"
 
 PREDICTION_INTERVAL = 0.5  # seconds
 
-MODEL_PATH = "models/emotion_model.pt"
-FACE_PROTO = "models/deploy.prototxt"
-FACE_MODEL = "models/res10_300x300_ssd_iter_140000.caffemodel"
+MODEL_PATH = os.environ.get("MODEL_PATH", "/models/emotion_model.pt")
+
+FACE_PROTO = "/models/immutable/deploy.prototxt"
+FACE_MODEL = "/models/immutable/res10_300x300_ssd_iter_140000.caffemodel"
 CONF_THRESHOLD = 0.6
 
 emotion_classes = [
@@ -39,7 +40,10 @@ model.fc = nn.Sequential(
 )
 
 # Load state dict (handle DataParallel if needed)
+print(f"Loading Emotion Model from {MODEL_PATH}...")
 state_dict = torch.load(MODEL_PATH, map_location=device)
+print("Emotion Model loaded")
+
 new_state_dict = {}
 for k, v in state_dict.items():
 	name = k.replace("module.", "")  # remove "module." prefix
@@ -61,8 +65,8 @@ transform = transforms.Compose([
 ])
 
 # Dnn face detector (ResNet-SSD, Caffe)
+print(f"Loading DNN face detector using\n\tFACE_PROTO @ {FACE_PROTO}\n\tFACE_MODEL @ {FACE_MODEL}")
 face_net = cv2.dnn.readNetFromCaffe(FACE_PROTO, FACE_MODEL)
-
 print("DNN face detector loaded.")
 
 def process_video(file_path):

@@ -1,0 +1,10 @@
+services:
+  fer-service:
+    image: fer
+    build: .
+    volumes:
+      - ./models:/models:ro
+    environment:
+      - MODEL_PATH=/models/emotion_model.pt
+    ports:
+      - 42069:42069

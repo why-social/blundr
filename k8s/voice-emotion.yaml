@@ -16,16 +16,34 @@ spec:
       labels:
         app: blundr
         component: ver
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-request: "50m"
     spec:
+      serviceAccountName: ver-sa
+      terminationGracePeriodSeconds: 600 # avoid terminating background jobs on update
       containers:
         - name: ver
           image: europe-north2-docker.pkg.dev/blundr/blundr-repo/ver:latest
           imagePullPolicy: Always
+          volumeMounts:
+            - name: gcs-ver-model-bucket
+              mountPath: /models
+              readOnly: true
           ports:
             - containerPort: 42069
           env:
             - name: AGGREGATOR_URL
-              value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator"
+              value: "http://aggregator-service.default.svc.cluster.local:42069/aggregator/aggregator"
+            - name: MODEL_PATH
+              value: "/models/v1/model.pth"
+      volumes:
+        - name: gcs-ver-model-bucket
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: "blundr-ver-models"
+              mountOptions: "implicit-dirs"
 ---
 apiVersion: v1
 kind: Service

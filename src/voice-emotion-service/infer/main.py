@@ -5,7 +5,8 @@ from pathlib import Path
 from threading import Lock
 
 import httpx
-from consts import AGGREGATOR_URL, SILENCE_TOKEN
+
+from consts import AGGREGATOR_URL, MODEL_PATH, SILENCE_TOKEN
 from data.audio import get_duration, is_file_silent
 from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
 from model.model import Model
@@ -15,11 +16,11 @@ from pandas import DataFrame
 audio_processing_lock = Lock()
 
 app = FastAPI()
-model = Model(Path("/etc/model.pth"))
+model = Model(Path(MODEL_PATH))
 client = httpx.Client(timeout=None)
 
 
-@app.post("/predict-audio-emotion")
+@app.post("/voice-emotion/predict-audio-emotion")
 async def infer(
     background_tasks: BackgroundTasks,
     session_id: str = Form(...),

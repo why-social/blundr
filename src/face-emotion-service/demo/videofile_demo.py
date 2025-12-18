@@ -11,8 +11,8 @@ VIDEO_FILE_PATH = "video.webm"
 OUTPUT_VIDEO_PATH = "video_processed.mp4"
 	
 MODEL_PATH = "../models/emotion_model.pt"
-FACE_PROTO = "../models/deploy.prototxt"
-FACE_MODEL = "../models/res10_300x300_ssd_iter_140000.caffemodel"
+FACE_PROTO = "../models/immutable/deploy.prototxt"
+FACE_MODEL = "../models/immutable/res10_300x300_ssd_iter_140000.caffemodel"
 CONF_THRESHOLD = 0.6
 
 emotion_classes = [
