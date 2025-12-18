@@ -23,6 +23,11 @@ Example Response:
 
 ## Running the Service
 
+### Run with Docker Compose:
+```bash
+docker compose up
+```
+
 ### Run with Docker:
 ```bash
 docker build -t face-emotion-service .

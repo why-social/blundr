@@ -44,10 +44,6 @@ docker buildx build \
   --platform linux/amd64 \
   -t ${KUBE_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:v1 \
   -t ${KUBE_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest \
-  "$BUILD_CONTEXT"
-
-# Push Docker image
-docker push ${KUBE_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:v1
-docker push ${KUBE_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest
+  "$BUILD_CONTEXT" --push
 
 echo "Docker images for '$SERVICE_NAME' built and pushed successfully."
