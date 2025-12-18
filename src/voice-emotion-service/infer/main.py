@@ -5,7 +5,6 @@ from pathlib import Path
 from threading import Lock
 
 import httpx
-
 from consts import AGGREGATOR_URL, MODEL_PATH, SILENCE_TOKEN
 from data.audio import get_duration, is_file_silent
 from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
