@@ -8,7 +8,7 @@ import httpx
 from fastapi import BackgroundTasks, FastAPI, File, Form, UploadFile
 from pandas import DataFrame
 
-from consts import AGGREGATOR_URL, SILENCE_TOKEN
+from consts import AGGREGATOR_URL, MODEL_PATH, SILENCE_TOKEN
 from data.audio import get_duration, is_file_silent
 from model.model import Model
 from model.speech_recognition import transcribe_audio
@@ -16,7 +16,7 @@ from model.speech_recognition import transcribe_audio
 audio_processing_lock = Lock()
 
 app = FastAPI()
-model = Model(Path("/etc/model.pth"))
+model = Model(Path(MODEL_PATH))
 client = httpx.Client(timeout=None)
 
 
