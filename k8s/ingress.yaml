@@ -37,3 +37,11 @@ spec:
             name: aggregator-service
             port:
               number: 80
+      # Admin API
+      - path: /admin
+        pathType: Prefix
+        backend:
+          service:
+            name: admin-service
+            port:
+              number: 80
