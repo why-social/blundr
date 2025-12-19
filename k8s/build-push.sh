@@ -4,7 +4,7 @@ set -e  # Exit on any error
 # Usage check
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <service_name>"
-  echo "Available services: fer, ver, aggregator"
+  echo "Available services: fer, ver, aggregator, admin"
   exit 1
 fi
 
@@ -33,8 +33,12 @@ case "$SERVICE_NAME" in
   aggregator)
     BUILD_CONTEXT="$PROJECT_ROOT/src/aggregator-service"
     ;;
+  admin)
+    SERVICE_NAME="admin-api"
+    BUILD_CONTEXT="$PROJECT_ROOT/src/admin-api"
+    ;;
   *)
-    echo "Error: Unknown service '$SERVICE_NAME'. Valid options: fer, ver, aggregator"
+    echo "Error: Unknown service '$SERVICE_NAME'. Valid options: fer, ver, aggregator, admin"
     exit 1
     ;;
 esac

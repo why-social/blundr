@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-api
+  labels:
+    app: blundr
+    component: admin-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blundr
+      component: admin-api
+  template:
+    metadata:
+      labels:
+        app: blundr
+        component: admin-api
+      annotations:
+        gke-gcsfuse/volumes: "true"
+        gke-gcsfuse/cpu-request: "50m"
+    spec:
+      serviceAccountName: admin-api-sa
+      nodeSelector:
+        cloud.google.com/gke-nodepool: swimming-pool
+
+      containers:
+        - name: admin-api
+          image: europe-north2-docker.pkg.dev/blundr/blundr-repo/admin-api:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 42069
+
+          volumeMounts:
+            - name: gcs-fer-data
+              mountPath: /data
+            - name: gcs-fer-models
+              mountPath: /models
+
+      volumes:
+        - name: gcs-fer-data
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: "blundr-fer-data"
+              mountOptions: "implicit-dirs"
+        - name: gcs-fer-models
+          csi:
+            driver: gcsfuse.csi.storage.gke.io
+            volumeAttributes:
+              bucketName: "blundr-fer-models"
+              mountOptions: "implicit-dirs"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+  labels:
+    app: blundr
+    component: admin-api
+spec:
+  selector:
+    app: blundr
+    component: admin-api
+  ports:
+    - name: http
+      port: 80
+      targetPort: 42069
+      protocol: TCP
+    - name: legacy
+      port: 42069
+      targetPort: 42069
+      protocol: TCP
+  type: ClusterIP
