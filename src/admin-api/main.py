@@ -1,3 +1,4 @@
+import json
 import os
 import shutil
 import uuid
@@ -126,8 +127,19 @@ async def upload_batch(
 
     # save CSV non-blocking-ly
     try:
-        manifest_csv_path_data = batch_root/"manifest.csv"
-        await run_in_threadpool(manifest_df.to_csv, manifest_csv_path_data, index=False)
+        manifest_path = batch_root/"manifest.csv"
+        metadata_path = batch_root/"metadata.json"
+
+        await run_in_threadpool(manifest_df.to_csv, manifest_path, index=False)
+
+        metadata = {
+            "batch_id": batch_uuid,
+            "count": len(saved_files),
+            "label_distribution": manifest_df['label'].value_counts().to_dict(),
+        }
+        async with aiofiles.open(metadata_path, mode='w') as f:
+            await f.write(json.dumps(metadata, indent=2))
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
