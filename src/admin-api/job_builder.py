@@ -1,14 +1,10 @@
 import uuid
+from pathlib import Path
 from typing import Dict, List
 
 from kubernetes import client
 
 NODEPOOL_NAME = "kiddie-pool"
-MOUNTS = {
-    "blundr-fer-models": "/models",
-    "blundr-fer-data": "/data",
-}
-
 
 def _build_volumes(buckets) -> List[client.V1Volume]:
     return [
@@ -26,7 +22,7 @@ def _build_volumes(buckets) -> List[client.V1Volume]:
     ]
 
 
-def _build_container(model_version: str, mounts: Dict[str, str]) -> client.V1Container:
+def _build_container(model_version: str, mounts: Dict[str, Path]) -> client.V1Container:
     return client.V1Container(
         name="fer-trainer",
         # TODO: use actual training image
@@ -42,19 +38,19 @@ def _build_container(model_version: str, mounts: Dict[str, str]) -> client.V1Con
         volume_mounts=[
             client.V1VolumeMount(
                 name=name,
-                mount_path=path,
+                mount_path=str(path),
             )
             for name, path in mounts.items()
         ],
     )
 
 
-def build_fer_training_job(model_version: str) -> client.V1Job:
+def build_fer_training_job(mounts: Dict[str,Path], model_version: str) -> client.V1Job:
     """
     Constructs a V1Job object for the training worker.
     """
     job_name = f"fer-training-job-{str(uuid.uuid4())[:6]}"
-    volumes = _build_volumes(MOUNTS.keys())
+    volumes = _build_volumes(mounts.keys())
 
     pod_template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(
@@ -78,7 +74,7 @@ def build_fer_training_job(model_version: str) -> client.V1Job:
                 )
             ],
             volumes=volumes,
-            containers=[_build_container(model_version, MOUNTS)],
+            containers=[_build_container(model_version, mounts)],
         ),
     )
 

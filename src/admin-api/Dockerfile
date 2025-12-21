@@ -16,8 +16,7 @@ COPY uv.lock /app
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --frozen --no-install-project
 
-COPY main.py /app
-COPY job_builder.py /app
+COPY . /app
 
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --locked

@@ -1,0 +1,9 @@
+services:
+  admin-api:
+    image: admin-api
+    build: .
+    volumes:
+      - ./models:/models:z
+      - ./data:/data:z
+    ports:
+      - 42069:42069
