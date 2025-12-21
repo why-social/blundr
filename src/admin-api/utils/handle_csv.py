@@ -1,6 +1,7 @@
 from io import StringIO
 from typing import Optional
 from fastapi import UploadFile
+from pathlib import Path
 import pandas as pd
 
 async def from_csv_or_str(
@@ -49,7 +50,36 @@ async def from_csv_or_str(
     except Exception as e:
         raise ValueError(f"Error processing CSV: {str(e)}")
 
-def validate_manifest_df(manifest_df: pd.DataFrame):
+def process_batch_manifest(batch_dir: Path):
+    manifest_path = batch_dir / "manifest.csv"
+    if not manifest_path.exists():
+        print(f"Warning: Skipping {batch_dir}, no manifest.csv found.")
+        return None
+
+    df = pd.read_csv(manifest_path)
+
+    # Update filename to include the relative path from DATA_MOUNT_ROOT
+    # e.g., "image1.jpg" -> "batch-123/data/image1.jpg"
+    # This ensures the training job can find the specific file
+    batch_rel_path = f"{batch_dir.name}/data/"
+    df['filename'] = batch_rel_path + df['filename'].astype(str)
+    return df
+
+def clean_nones(value):
     """
-    Validate manifest has a filename an a label columns
+    Recursively remove all None values from dictionaries and lists,
+    and convert K8s objects to dicts.
     """
+    if hasattr(value, "to_dict"):
+        value = value.to_dict()
+
+    if isinstance(value, list):
+        return [clean_nones(x) for x in value if x is not None]
+    elif isinstance(value, dict):
+        return {
+            key: clean_nones(val)
+            for key, val in value.items()
+            if val is not None
+        }
+    else:
+        return value
