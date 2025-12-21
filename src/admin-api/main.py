@@ -1,12 +1,10 @@
 import json
-import os
 import shutil
 import uuid
 import aiofiles
 import pandas as pd
 from pprint import pprint
 from typing import List, Optional
-from pathlib import Path
 
 from fastapi import (
     FastAPI,
@@ -20,15 +18,18 @@ from fastapi.concurrency import run_in_threadpool
 from kubernetes import client, config
 
 from job_builder import build_fer_training_job
-from utils.gcs import get_latest_model_version
+from utils.gcs import get_latest_model_version, save_to_cas
 from utils.handle_csv import from_csv_or_str, process_batch_manifest, clean_nones
+from consts import (
+    ENDPOINT_PREFIX,
+    DATA_MOUNT_ROOT,
+    BATCH_ROOT,
+    CAS_ROOT,
+    MODELS_MOUNT_ROOT
+)
 
-ENDPOINT_PREFIX = "/admin"
 
-# GCS mounts
-DATA_MOUNT_ROOT = Path(os.getenv("DATA_ROOT", "/data"))
-MODELS_MOUNT_ROOT = Path(os.getenv("MODELS_ROOT", "/models"))
-
+# k8s client
 config.load_incluster_config()
 batch_api = client.BatchV1Api()
 
@@ -41,7 +42,6 @@ async def upload_batch(
     manifest_file: Optional[UploadFile] = File(None),
     manifest_str: Optional[str] = Form(None),
 ):
-    # TODO: hashing to avoid duplicates?
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Expected at least 1 file.")
 
@@ -65,10 +65,8 @@ async def upload_batch(
     # create directory for the batch
     try:
         batch_uuid = str(uuid.uuid4())[:6]
-        batch_root = DATA_MOUNT_ROOT / f"batch-{batch_uuid}"
-        batch_data = batch_root/"data"
-
-        batch_data.mkdir(parents=True, exist_ok=True)
+        batch_dir = BATCH_ROOT / f"batch-{batch_uuid}"
+        batch_dir.mkdir(parents=True, exist_ok=True)
     except OSError as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -80,13 +78,17 @@ async def upload_batch(
     saved_files = []
     failed_files = []
 
-    for _, row in manifest_df.iterrows():
+    manifest_df['hash'] = None
+    manifest_df['path'] = None
+
+    for idx, row in manifest_df.iterrows():
         target_filename = row['filename']
         if not target_filename:
             failed_files.append({
-                "filename": target_filename,
+                "filename": "undefined",
                 "reason": "Empty name",
             })
+            manifest_df.drop(idx)
             continue
 
         if target_filename not in upload_map:
@@ -94,41 +96,58 @@ async def upload_batch(
                 "filename": target_filename,
                 "reason": "Listed in manifest but missing in upload.",
             })
+            manifest_df.drop(idx)
             continue
 
         file_obj = upload_map[target_filename]
-        dest_path = batch_data/str(target_filename)
 
         # write the file
         try:
             content = await file_obj.read()
-            async with aiofiles.open(dest_path, 'wb') as out_file:
-                await out_file.write(content)
+            result = await save_to_cas(CAS_ROOT, content, target_filename)
 
+            if result['exists']:
+                print(f"{target_filename} already exists in CAS")
+                failed_files.append({
+                    "filename": target_filename,
+                    "reson": "Duplicate. File already exists in a previous batch.",
+                })
+                manifest_df.drop(idx)
+                continue
+
+            manifest_df.at[idx, 'hash'] = result['hash']
+            manifest_df.at[idx, 'path'] = result['path']
             saved_files.append(target_filename)
         except Exception as e:
             failed_files.append({
                 "filename": target_filename,
                 "reason": f"IO Error: {str(e)}"
             })
+            manifest_df.drop(idx)
 
     if not saved_files:
+        shutil.rmtree(batch_dir, ignore_errors=True)
+        print(f"Failing with manifest {manifest_df}")
+        print(failed_files)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No files in the upload matched the filenames in the manifest."
+            detail={
+                "message": "All files failed or were duplicates.",
+                "failures": failed_files,
+            }
         )
-    else:
-        for uploaded_filename in upload_map.keys():
-            if uploaded_filename not in saved_files:
-                failed_files.append({
-                    "filename": uploaded_filename,
-                    "reason": "Uploaded but not listed in manifest",
-                })
+
+    for uploaded_filename in upload_map.keys():
+        if uploaded_filename not in saved_files:
+            failed_files.append({
+                "filename": uploaded_filename,
+                "reason": "Uploaded but not listed in manifest",
+            })
 
     # save CSV non-blocking-ly
     try:
-        manifest_path = batch_root/"manifest.csv"
-        metadata_path = batch_root/"metadata.json"
+        manifest_path = batch_dir/"manifest.csv"
+        metadata_path = batch_dir/"metadata.json"
 
         await run_in_threadpool(manifest_df.to_csv, manifest_path, index=False)
 
@@ -143,21 +162,7 @@ async def upload_batch(
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to save manifest CSVs: {str(e)}",
-        )
-
-    if not saved_files:
-        print("Batch upload failed. Cleaning up directories.")
-        for d in [batch_data, batch_root]:
-            if d.exists():
-                try:
-                    shutil.rmtree(d)
-                except OSError as cleanup_error:
-                    print(f"Failed to cleanup {d}: {cleanup_error}")
-
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Batch processing failed, no files uploaded.",
+            detail=f"Failed to save manifest CSV: {str(e)}",
         )
 
     return {
@@ -166,7 +171,7 @@ async def upload_batch(
         "saved_files": {
             "count": len(saved_files),
         },
-        "files_failed": {
+        "failed_files": {
             "count": len(failed_files),
             "detail": failed_files,
         }
@@ -194,7 +199,7 @@ async def start_training_job():
     try:
         print("Scanning for batch data...")
         # Find all batch directories
-        batch_dirs = [d for d in DATA_MOUNT_ROOT.glob("batch-*") if d.is_dir()]
+        batch_dirs = [d for d in BATCH_ROOT.glob("batch-*") if d.is_dir()]
 
         if not batch_dirs:
             raise HTTPException(

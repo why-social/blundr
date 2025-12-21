@@ -56,14 +56,7 @@ def process_batch_manifest(batch_dir: Path):
         print(f"Warning: Skipping {batch_dir}, no manifest.csv found.")
         return None
 
-    df = pd.read_csv(manifest_path)
-
-    # Update filename to include the relative path from DATA_MOUNT_ROOT
-    # e.g., "image1.jpg" -> "batch-123/data/image1.jpg"
-    # This ensures the training job can find the specific file
-    batch_rel_path = f"{batch_dir.name}/data/"
-    df['filename'] = batch_rel_path + df['filename'].astype(str)
-    return df
+    return pd.read_csv(manifest_path)
 
 def clean_nones(value):
     """

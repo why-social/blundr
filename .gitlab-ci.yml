@@ -23,6 +23,10 @@ lint:
           - '.gitlab-ci.yml'
     - if: $CI_COMMIT_BRANCH
       when: manual
+      changes:
+        compare_to: 'refs/heads/main'
+        paths:
+          - '**/*.py'
 
   before_script:
     - apt-get update && apt-get install -y git
