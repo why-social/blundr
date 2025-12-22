@@ -4,6 +4,7 @@ from fastapi import UploadFile
 from pathlib import Path
 import pandas as pd
 
+
 async def from_csv_or_str(
     file: Optional[UploadFile],
     _str: Optional[str],
@@ -22,7 +23,9 @@ async def from_csv_or_str(
         csv_content = _str
     elif file:
         if file.filename and not file.filename.lower().endswith(".csv"):
-             raise ValueError(f"Invalid file type: '{file.filename}'. Must be a .csv file.")
+            raise ValueError(
+                f"Invalid file type: '{file.filename}'. Must be a .csv file."
+            )
 
         content_bytes = await file.read()
         await file.seek(0)
@@ -50,6 +53,7 @@ async def from_csv_or_str(
     except Exception as e:
         raise ValueError(f"Error processing CSV: {str(e)}")
 
+
 def process_batch_manifest(batch_dir: Path):
     manifest_path = batch_dir / "manifest.csv"
     if not manifest_path.exists():
@@ -57,6 +61,7 @@ def process_batch_manifest(batch_dir: Path):
         return None
 
     return pd.read_csv(manifest_path)
+
 
 def clean_nones(value):
     """
@@ -69,10 +74,6 @@ def clean_nones(value):
     if isinstance(value, list):
         return [clean_nones(x) for x in value if x is not None]
     elif isinstance(value, dict):
-        return {
-            key: clean_nones(val)
-            for key, val in value.items()
-            if val is not None
-        }
+        return {key: clean_nones(val) for key, val in value.items() if val is not None}
     else:
         return value

@@ -6,6 +6,7 @@ from kubernetes import client
 
 NODEPOOL_NAME = "kiddie-pool"
 
+
 def _build_volumes(buckets) -> List[client.V1Volume]:
     return [
         client.V1Volume(
@@ -45,7 +46,7 @@ def _build_container(model_version: str, mounts: Dict[str, Path]) -> client.V1Co
     )
 
 
-def build_fer_training_job(mounts: Dict[str,Path], model_version: str) -> client.V1Job:
+def build_fer_training_job(mounts: Dict[str, Path], model_version: str) -> client.V1Job:
     """
     Constructs a V1Job object for the training worker.
     """

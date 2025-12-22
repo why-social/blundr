@@ -1,38 +1,40 @@
 from pathlib import Path
-import aiofiles
 import os
 import re
 import hashlib
 from typing import Dict
-from consts import CAS_DIR_NAME
+from consts import CAS_DIR_NAME, MODELS_MOUNT_ROOT
 from fastapi.concurrency import run_in_threadpool
 
 _created_dirs_cache = set()
 
+
 # TODO: write latest version as metadata in bucket root to avoid scanning directories
-def get_latest_model_version(root: Path) -> int:
+def get_latest_model_version() -> int:
     """
     Scans the provided root path containing versioned directories in format v(d+).
     Returns the latest version.
     May raise FileNotFoundError and PermissionError
     """
     latest = 0
-    version_pattern = re.compile(r'^v(\d+)$')
+    version_pattern = re.compile(r"^v(\d+)$")
 
     # os.scandir is a generator that yields DirEntry objects.
-    # This is more efficient than os.listdir() for GCS FUSE because 
+    # This is more efficient than os.listdir() for GCS FUSE because
     # it avoids extra 'stat' calls to check if an entry is a directory.
-    with os.scandir(root) as entries:
+    with os.scandir(MODELS_MOUNT_ROOT) as entries:
         for entry in entries:
             if entry.is_dir():
                 match = version_pattern.match(entry.name)
                 if match:
                     latest = max(latest, int(match.group(1)))
 
-
     return latest
 
-def _check_fs_blocking(root: Path, file_hash: str, filename: str, content: bytes) -> Dict:
+
+def _check_fs_blocking(
+    root: Path, file_hash: str, filename: str, content: bytes
+) -> Dict:
     """
     Blocking I/O operations (mkdir, exists) to be run in a threadpool.
     """
@@ -48,7 +50,7 @@ def _check_fs_blocking(root: Path, file_hash: str, filename: str, content: bytes
     rel_path = Path(CAS_DIR_NAME) / shard_relative / final_name
 
     if not abs_path.exists():
-        with open(abs_path, 'wb') as f:
+        with open(abs_path, "wb") as f:
             f.write(content)
 
     return {
@@ -66,7 +68,8 @@ async def save_to_cas(root: Path, content: bytes, original_filename: str) -> Dic
     sha256 = hashlib.sha256(content)
     file_hash = sha256.hexdigest()
 
-    fs_result = await run_in_threadpool(_check_fs_blocking, root, file_hash, original_filename, content)
+    fs_result = await run_in_threadpool(
+        _check_fs_blocking, root, file_hash, original_filename, content
+    )
 
     return fs_result
-
