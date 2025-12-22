@@ -54,8 +54,14 @@ def _check_fs_blocking(
         with open(abs_path, "wb") as f:
             f.write(content)
 
+        return {
+            "exists": False,
+            "path": str(rel_path),
+            "hash": file_hash,
+        }
+
     return {
-        "exists": abs_path.exists(),
+        "exists": True,
         "path": str(rel_path),
         "hash": file_hash,
     }

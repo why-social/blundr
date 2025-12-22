@@ -159,7 +159,7 @@ async def upload_batch(
                 failed_files.append(
                     {
                         "filename": target_filename,
-                        "reson": "Duplicate. File already exists in a previous batch.",
+                        "reason": "Duplicate. File already exists in a previous batch.",
                     }
                 )
                 indices_to_drop.append(idx)
