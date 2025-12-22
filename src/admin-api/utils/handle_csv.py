@@ -1,8 +1,9 @@
 from io import StringIO
-from typing import Optional
-from fastapi import UploadFile
 from pathlib import Path
+from typing import Optional
+
 import pandas as pd
+from fastapi import UploadFile
 
 
 async def from_csv_or_str(

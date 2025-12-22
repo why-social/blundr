@@ -1,42 +1,42 @@
 import json
+import re
 import shutil
 import uuid
-import aiofiles
-import pandas as pd
-import re
 from pprint import pprint
 from typing import Any, List, Optional
 
+import aiofiles
+import pandas as pd
 from fastapi import (
     FastAPI,
-    UploadFile,
     File,
     Form,
     HTTPException,
+    UploadFile,
     status,
 )
 from fastapi.concurrency import run_in_threadpool
-
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 from kubernetes.client.models import V1Deployment, V1DeploymentStatus, V1Job
 
-from job_builder import build_fer_training_job
-from utils.gcs import get_latest_model_version, save_to_cas
-from utils.handle_csv import from_csv_or_str, process_batch_manifest, clean_nones
 from consts import (
-    ENDPOINT_PREFIX,
-    DATA_MOUNT_ROOT,
     BATCH_ROOT,
     CAS_ROOT,
-    MODELS_MOUNT_ROOT,
+    DATA_MOUNT_ROOT,
+    ENDPOINT_PREFIX,
     FER_DEPLOYMENT,
     MODEL_FILENAME,
+    MODELS_MOUNT_ROOT,
 )
-
+from job_builder import build_fer_training_job
+from utils.gcs import get_latest_model_version, save_to_cas
+from utils.handle_csv import clean_nones, from_csv_or_str, process_batch_manifest
 
 # k8s clients
 _batch_client = None
+
+
 def get_k8s_batch_client() -> Optional[client.BatchV1Api]:
     global _batch_client
     if _batch_client:
@@ -53,7 +53,10 @@ def get_k8s_batch_client() -> Optional[client.BatchV1Api]:
     _batch_client = client.BatchV1Api()
     return _batch_client
 
+
 _apps_client = None
+
+
 def get_k8s_apps_client() -> Optional[client.AppsV1Api]:
     global _apps_client
     if _apps_client:
@@ -70,7 +73,9 @@ def get_k8s_apps_client() -> Optional[client.AppsV1Api]:
     _apps_client = client.AppsV1Api()
     return _apps_client
 
+
 app = FastAPI()
+
 
 @app.post(ENDPOINT_PREFIX + "/fer/data/upload", status_code=201)
 async def upload_batch(
@@ -121,7 +126,9 @@ async def upload_batch(
 
     for idx, row in manifest_df.iterrows():
         target_filename: Any = row["filename"]
-        if pd.isna(target_filename) or (isinstance(target_filename, str) and not target_filename.strip()):
+        if pd.isna(target_filename) or (
+            isinstance(target_filename, str) and not target_filename.strip()
+        ):
             failed_files.append(
                 {
                     "filename": "undefined",
@@ -353,7 +360,7 @@ async def start_training_job():
 @app.post(ENDPOINT_PREFIX + "/fer/model/select")
 async def select_model(model_version: str):
     latest_ver = get_latest_model_version()
-    if model_version.lower() == 'latest':
+    if model_version.lower() == "latest":
         selected_version = latest_ver
     else:
         version_pattern = re.compile(r"^v(\d+)$")
@@ -479,7 +486,7 @@ async def select_model(model_version: str):
             "new_model": {
                 "version": model_version,
                 "path": target_model_path,
-            }
+            },
         }
 
     except ApiException as e:

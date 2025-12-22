@@ -1,5 +1,5 @@
-from pathlib import Path
 import os
+from pathlib import Path
 
 ENDPOINT_PREFIX = "/admin"
 
@@ -22,4 +22,4 @@ FER_DEPLOYMENT = {
     "VOLUME_NAME_KEY": "gcs-fer-model-bucket",
 }
 
-MODEL_FILENAME = 'emotion_model.pt'
+MODEL_FILENAME = "emotion_model.pt"
