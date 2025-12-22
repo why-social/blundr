@@ -7,19 +7,6 @@ from typing import Any, List, Optional
 
 import aiofiles
 import pandas as pd
-from fastapi import (
-    FastAPI,
-    File,
-    Form,
-    HTTPException,
-    UploadFile,
-    status,
-)
-from fastapi.concurrency import run_in_threadpool
-from kubernetes import client, config
-from kubernetes.client.exceptions import ApiException
-from kubernetes.client.models import V1Deployment, V1DeploymentStatus, V1Job
-
 from consts import (
     BATCH_ROOT,
     CAS_ROOT,
@@ -29,7 +16,19 @@ from consts import (
     MODEL_FILENAME,
     MODELS_MOUNT_ROOT,
 )
+from fastapi import (
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    UploadFile,
+    status,
+)
+from fastapi.concurrency import run_in_threadpool
 from job_builder import build_fer_training_job
+from kubernetes import client, config
+from kubernetes.client.exceptions import ApiException
+from kubernetes.client.models import V1Deployment, V1DeploymentStatus, V1Job
 from utils.gcs import get_latest_model_version, save_to_cas
 from utils.handle_csv import clean_nones, from_csv_or_str, process_batch_manifest
 

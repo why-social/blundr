@@ -4,9 +4,8 @@ import re
 from pathlib import Path
 from typing import Dict
 
-from fastapi.concurrency import run_in_threadpool
-
 from consts import CAS_DIR_NAME, MODELS_MOUNT_ROOT
+from fastapi.concurrency import run_in_threadpool
 
 _created_dirs_cache = set()
 
