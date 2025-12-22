@@ -39,7 +39,10 @@ export function init(
         if (a.clientId === clientId || b.clientId === clientId) {
           const otherClient = a.clientId === clientId ? b : a;
 
-          otherClient.ws.send(JSON.stringify({ type: "peer-left" }));
+          if (otherClient.ws.readyState === WebSocket.OPEN) {
+            otherClient.ws.send(JSON.stringify({ type: "peer-left" }));
+          }
+
           activeSessions.delete(sessionId);
 
           break;

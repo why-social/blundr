@@ -2,6 +2,7 @@ import { DM_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";
 import { BlockNavigationProvider } from "./providers/BlockNavigationProvider";
+import { ClientDynamicGradient } from "./components/gradient/ClientDynamicGradient";
 
 export const metadata: Metadata = {
   title: "Blundr",
@@ -24,7 +25,8 @@ export default function RootLayout({
       lang="en"
       className={`${font.variable}`}
     >
-      <body className="relative min-h-screen antialiased">
+      <body className="relative min-h-screen overflow-x-hidden antialiased">
+        <ClientDynamicGradient />
         <BlockNavigationProvider>{children}</BlockNavigationProvider>
       </body>
     </html>

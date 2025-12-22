@@ -9,6 +9,7 @@ import { init } from "./wrtc/mediasoup.js";
 import errorHandler from "./middleware/errorHandler.js";
 import cors from "./middleware/cors.js";
 import { readFileSync } from "fs";
+import { logInfo, logWarn } from "./utils/logs.js";
 
 const app = express();
 
@@ -26,10 +27,9 @@ try {
   };
   server = https.createServer(options, app);
 
-  console.log("HTTPS server created");
+  logInfo("HTTPS server created");
 } catch (error) {
-  console.warn("Certificates not found, falling back to HTTP");
-  console.warn(error);
+  logWarn("Certificates not found, falling back to HTTP");
 
   server = http.createServer(app);
 }
@@ -37,5 +37,5 @@ try {
 init(server);
 
 server.listen(config.port, () => {
-  console.log(`Server running on port ${config.port}`);
+  logInfo(`Server running on port ${config.port}`);
 });

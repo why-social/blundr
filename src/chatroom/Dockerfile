@@ -13,7 +13,12 @@ RUN apt-get update && \
 WORKDIR /usr/src/chatroom
 COPY . .
 
+ARG FER_URL
+ARG VER_URL
 ARG MEDIASOUP_ANNOUNCED_IP
+
+ENV FER_URL=${FER_URL}
+ENV VER_URL=${VER_URL}
 ENV MEDIASOUP_ANNOUNCED_IP=${MEDIASOUP_ANNOUNCED_IP}
 
 # needed for the tls mounts in the vm

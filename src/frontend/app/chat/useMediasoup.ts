@@ -19,6 +19,7 @@ export function useMediaSoup(
   const clientId = useRef<string | null>(null);
   const sessionId = useRef<string | null>(null);
   const [isQueuing, setQueuing] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const onCallEndRef = useRef(onCallEnd);
   useEffect(() => {
@@ -28,8 +29,9 @@ export function useMediaSoup(
   const setup = useCallback(async () => {
     const stream = await navigator.mediaDevices
       .getUserMedia({ audio: true, video: true })
-      .catch((err) => {
-        console.error("Failed to get media:", err);
+      .catch((error) => {
+        console.error("Failed to get media:", error);
+
         return null;
       });
 
@@ -37,9 +39,16 @@ export function useMediaSoup(
       return () => {};
     }
 
+    const routerCapabilitiesRes = await getRouterRtpCapabilities();
+    if (routerCapabilitiesRes.status === "error") {
+      setError(routerCapabilitiesRes.data.message);
+
+      return () => {};
+    }
+
     const device = new Device();
     await device.load({
-      routerRtpCapabilities: await getRouterRtpCapabilities(),
+      routerRtpCapabilities: routerCapabilitiesRes.data,
     });
 
     let sendTransport: Transport<AppData> | null = null;
@@ -53,15 +62,27 @@ export function useMediaSoup(
           localVideoRef.current.srcObject = stream;
         }
 
-        const transport = device.createSendTransport(
-          await createTransport(clientId.current, "send"),
-        );
+        const transportRes = await createTransport(clientId.current, "send");
+        if (transportRes.status === "error") {
+          setError(transportRes.data.message);
+          throw Error(transportRes.data.message);
+        }
+
+        const transport = device.createSendTransport(transportRes.data);
 
         transport.on(
           "connect",
           async ({ dtlsParameters }, callback, errback) => {
             try {
-              await connectTransport(transport.id, dtlsParameters);
+              const connectRes = await connectTransport(
+                transport.id,
+                dtlsParameters,
+              );
+              if (connectRes.status === "error") {
+                setError(connectRes.data.message);
+                throw Error(connectRes.data.message);
+              }
+
               callback();
             } catch (error) {
               errback(error as Error);
@@ -73,12 +94,18 @@ export function useMediaSoup(
           "produce",
           async ({ kind, rtpParameters }, callback, errback) => {
             try {
-              const { producerId } = await createProducer(
+              const producerRes = await createProducer(
                 transport.id,
                 kind,
                 rtpParameters,
               );
-              callback({ id: producerId });
+
+              if (producerRes.status === "error") {
+                setError(producerRes.data.message);
+                throw Error(producerRes.data.message);
+              }
+
+              callback({ id: producerRes.data.producerId });
             } catch (error) {
               errback(error as Error);
             }
@@ -98,9 +125,13 @@ export function useMediaSoup(
 
         sessionId.current = session;
 
-        const transport = device.createRecvTransport(
-          await createTransport(clientId.current, "receive"),
-        );
+        const transportRes = await createTransport(clientId.current, "receive");
+        if (transportRes.status === "error") {
+          setError(transportRes.data.message);
+          throw Error(transportRes.data.message);
+        }
+
+        const transport = device.createRecvTransport(transportRes.data);
 
         transport.on(
           "connect",
@@ -114,25 +145,40 @@ export function useMediaSoup(
           },
         );
 
-        const audioConsumer = await transport.consume(
-          await createConsumer(
-            clientId.current,
-            connectedClient,
-            "audio",
-            device.rtpCapabilities,
-          ),
+        const audioConsumerRes = await createConsumer(
+          clientId.current,
+          connectedClient,
+          "audio",
+          device.rtpCapabilities,
         );
-        const videoConsumer = await transport.consume(
-          await createConsumer(
-            clientId.current,
-            connectedClient,
-            "video",
-            device.rtpCapabilities,
-          ),
+        if (audioConsumerRes.status === "error") {
+          setError(audioConsumerRes.data.message);
+          throw Error(audioConsumerRes.data.message);
+        }
+
+        const audioConsumer = await transport.consume(audioConsumerRes.data);
+
+        const videoConsumerRes = await createConsumer(
+          clientId.current,
+          connectedClient,
+          "video",
+          device.rtpCapabilities,
         );
+        if (videoConsumerRes.status === "error") {
+          setError(videoConsumerRes.data.message);
+          throw Error(videoConsumerRes.data.message);
+        }
+
+        const videoConsumer = await transport.consume(videoConsumerRes.data);
 
         await resumeConsumer(audioConsumer.id);
         await resumeConsumer(videoConsumer.id);
+
+        receiveTransport = transport;
+
+        // "sleep" for a second to make sure the chatroom consumers
+        // have received some stream data (VM issue)
+        await new Promise((resolve) => setTimeout(resolve, 1000));
 
         if (remoteVideoRef.current) {
           const remoteStream = new MediaStream();
@@ -143,8 +189,9 @@ export function useMediaSoup(
           remoteVideoRef.current.srcObject = remoteStream;
         }
 
-        receiveTransport = transport;
-        setQueuing(false);
+        requestAnimationFrame(() => {
+          setQueuing(false);
+        });
       },
 
       onPeerLeft: () => {
@@ -162,5 +209,5 @@ export function useMediaSoup(
     };
   }, [localVideoRef, remoteVideoRef]);
 
-  return { setup, isQueuing, sessionId };
+  return { setup, isQueuing, sessionId, clientId, error };
 }
