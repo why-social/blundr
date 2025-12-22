@@ -8,7 +8,6 @@ const Video = forwardRef<HTMLVideoElement, JSX.IntrinsicElements["video"]>(
         autoPlay
         playsInline
         muted={false}
-        className="-scale-x-100"
         {...props}
       />
     );
