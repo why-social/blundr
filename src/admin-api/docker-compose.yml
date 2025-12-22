@@ -5,5 +5,8 @@ services:
     volumes:
       - ./models:/models:z
       - ./data:/data:z
+      - ${HOME}/.kube/config:/root/.kube/config:ro
+    environment:
+      - KUBECONFIG=/root/.kube/config
     ports:
       - 42069:42069

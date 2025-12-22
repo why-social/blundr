@@ -9,7 +9,7 @@ fi
 
 DIRECTORY="$1"
 LABEL="$2"
-ENDPOINT="http://localhost:42069/admin/upload" # Change port/host if needed
+ENDPOINT="http://localhost:42069/admin/fer/data/upload" # Change port/host if needed
 MANIFEST="manifest.csv"
 
 # 1. Create the CSV header
