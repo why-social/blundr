@@ -8,3 +8,19 @@ services:
       - MODEL_PATH=/models/emotion_model.pt
     ports:
       - 42069:42069
+    profiles:
+      - serve
+  fer-train:
+    image: fer-train
+    build:
+      context: .
+      dockerfile: Dockerfile.train
+    volumes:
+      - ./models:/models
+      - ./testDockerizedTraining/data:/data
+      - ./testDockerizedTraining/gce/v1:/gce/v1
+    environment:
+      - MODEL_VERSION=v1
+      - IMAGE_BASE_PATH=/data
+    profiles:
+      - train
