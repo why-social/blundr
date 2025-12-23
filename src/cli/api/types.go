@@ -49,14 +49,20 @@ type SelectModelResponse struct {
 }
 
 type ModelMetadata struct {
-	BatchID           string         `json:"batch_id"`
-	Count             int            `json:"count"`
-	LabelDistribution map[string]int `json:"label_distribution"`
+	ValAccuracy *float64 `json:"val_accuracy,omitempty"`
+	Hyperparams struct {
+		LearningRate float64 `json:"learning_rate"`
+		Epochs       int     `json:"epochs"`
+	} `json:"hyperparams"`
+	Data struct {
+		ValFraction float64 `json:"val_fraction"`
+		BatchSize   int     `json:"batch_size"`
+	} `json:"data"`
 }
 
 type ModelInfo struct {
 	Version  string         `json:"version"`
-	Metadata *ModelMetadata `json:"metadata"` // nullable
+	Metadata *ModelMetadata `json:"metadata,omitempty"`
 }
 
 type GetModelsResponse struct {

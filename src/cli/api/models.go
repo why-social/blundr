@@ -35,15 +35,17 @@ func PrintModels(client *Client) error {
 		if model.Metadata == nil {
 			fmt.Println("  Metadata: unavailable")
 		} else {
-			fmt.Printf("  Batch ID: %s\n", model.Metadata.BatchID)
-			fmt.Printf("  Samples: %d\n", model.Metadata.Count)
-
-			if len(model.Metadata.LabelDistribution) > 0 {
-				fmt.Println("  Label distribution:")
-				for label, count := range model.Metadata.LabelDistribution {
-					fmt.Printf("    - %s: %d\n", label, count)
-				}
+			if model.Metadata.ValAccuracy != nil {
+				fmt.Printf("  Validation Accuracy: %.2f\n", *model.Metadata.ValAccuracy)
 			}
+
+			fmt.Println("  Hyperparameters:")
+			fmt.Printf("    Learning Rate: %.4f\n", model.Metadata.Hyperparams.LearningRate)
+			fmt.Printf("    Epochs: %d\n", model.Metadata.Hyperparams.Epochs)
+
+			fmt.Println("  Data Info:")
+			fmt.Printf("    Validation Fraction: %.2f\n", model.Metadata.Data.ValFraction)
+			fmt.Printf("    Batch Size: %d\n", model.Metadata.Data.BatchSize)
 		}
 
 		fmt.Println()
