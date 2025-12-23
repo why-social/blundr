@@ -21,7 +21,8 @@ INPUT_SIZE = 128
 
 MODEL_VERSION = os.getenv('MODEL_VERSION', 'default')
 
-MANIFEST_PATH = f"/gce/{MODEL_VERSION}/manifest.csv"
+MODEL_BASE_PATH = os.getenv('MODEL_BASE_PATH', '/models')
+MANIFEST_PATH = f"{MODEL_BASE_PATH}/{MODEL_VERSION}/manifest.csv"
 
 # Dataset definition
 class ManifestDataset(Dataset):
@@ -37,7 +38,7 @@ class ManifestDataset(Dataset):
 		self.class_to_idx = {l: i for i, l in enumerate(labels)}
 
 		self.samples = []
-		base_path = os.getenv("IMAGE_BASE_PATH", "")
+		base_path = os.getenv("IMAGE_BASE_PATH", "/data")
 
 		for r in rows:
 			img_path = os.path.join(base_path, r["path"])
