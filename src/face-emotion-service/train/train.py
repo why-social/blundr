@@ -10,6 +10,7 @@ from tqdm import tqdm
 import os
 import csv
 from PIL import Image
+import hashlib
 
 VAL_FRACTION = 0.2
 BATCH_SIZE = 16
@@ -24,35 +25,41 @@ MANIFEST_PATH = f"/gce/{MODEL_VERSION}/manifest.csv"
 
 # Dataset definition
 class ManifestDataset(Dataset):
-	def __init__(self, manifest_path, transform=None):
-		self.samples = []
+	def __init__(self, manifest_path, transform=None, cache_dir="/tmp/image_cache"):
 		self.transform = transform
+		self.cache_dir = cache_dir
+		os.makedirs(cache_dir, exist_ok=True)
 
-		with open(manifest_path, newline="") as f:
-			reader = csv.DictReader(f)
-			for row in reader:
-				self.samples.append({
-					"path": row["path"],
-					"label": row["label"]
-				})
+		with open(manifest_path) as f:
+			rows = list(csv.DictReader(f))
 
-		# Build label mapping
-		labels = sorted({s["label"] for s in self.samples})
-		self.class_to_idx = {label: idx for idx, label in enumerate(labels)}
-		self.idx_to_class = {idx: label for label, idx in self.class_to_idx.items()}
+		labels = sorted({r["label"] for r in rows})
+		self.class_to_idx = {l: i for i, l in enumerate(labels)}
+
+		self.samples = []
+		base_path = os.getenv("IMAGE_BASE_PATH", "")
+
+		for r in rows:
+			img_path = os.path.join(base_path, r["path"])
+			key = hashlib.md5(img_path.encode()).hexdigest()
+			self.samples.append((
+				img_path,
+				self.class_to_idx[r["label"]],
+				os.path.join(cache_dir, f"{key}.pt")
+			))
 
 	def __len__(self):
 		return len(self.samples)
 
 	def __getitem__(self, idx):
-		sample = self.samples[idx]
-		base_path = os.getenv("IMAGE_BASE_PATH", "")
-		img_path = os.path.join(base_path, sample["path"])
-		if not os.path.exists(img_path):
-			raise FileNotFoundError(f"Image not found: {img_path}")
-		label = self.class_to_idx[sample["label"]]
+		img_path, label, cache_path = self.samples[idx]
 
-		image = Image.open(img_path).convert("RGB")
+		if os.path.exists(cache_path):
+			image = torch.load(cache_path)
+		else:
+			image = Image.open(img_path).convert("RGB")
+			image = transforms.ToTensor()(image)
+			torch.save(image, cache_path)
 
 		if self.transform:
 			image = self.transform(image)
@@ -80,7 +87,6 @@ train_transform = transforms.Compose([
 	transforms.Resize((INPUT_SIZE, INPUT_SIZE)),
 	transforms.RandomHorizontalFlip(),
 	transforms.RandomRotation(8),
-	transforms.ToTensor(),
 	transforms.Normalize([0.5]*3, [0.5]*3),
 	transforms.RandomErasing(p=0.3, scale=(0.02, 0.2), ratio=(0.3, 3.3)),
 ])
@@ -88,7 +94,6 @@ train_transform = transforms.Compose([
 val_transform = transforms.Compose([
 	transforms.Grayscale(num_output_channels=3),
 	transforms.Resize((INPUT_SIZE, INPUT_SIZE)),
-	transforms.ToTensor(),
 	transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
@@ -108,8 +113,8 @@ train_subset, val_subset = random_split(dataset, [train_size, val_size])
 train_dataset = TransformSubset(train_subset, transform=train_transform)
 val_dataset = TransformSubset(val_subset, transform=val_transform)
 # Create data loaders
-train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=WORKERS_NUM)
-val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=WORKERS_NUM)
+train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=WORKERS_NUM, persistent_workers=True)
+val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=WORKERS_NUM, persistent_workers=True)
 
 # Initialize model
 model = models.resnet34(weights=None)  # Train from scratch
@@ -131,8 +136,7 @@ if torch.cuda.device_count() > 1:
 
 # Count samples per class
 class_counts = [0] * num_classes
-for sample in dataset.samples:
-	label_idx = dataset.class_to_idx[sample["label"]]
+for _, label_idx, _ in dataset.samples:
 	class_counts[label_idx] += 1
 
 # Compute class weights: inverse frequency
