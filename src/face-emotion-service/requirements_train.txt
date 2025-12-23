@@ -1,0 +1,9 @@
+fastapi
+opencv-python-headless
+torch
+torchvision
+pillow
+numpy
+python-multipart
+httpx
+tqdm

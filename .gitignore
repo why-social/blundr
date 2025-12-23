@@ -209,3 +209,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Face emotion service dataset
+src/face-emotion-service/data
+src/face-emotion-service/testDockerizedTraining
