@@ -233,7 +233,7 @@ async def upload_batch(
     }
 
 
-@app.post(ENDPOINT_PREFIX + "/fer/model/train")
+@app.post(ENDPOINT_PREFIX + "/fer/models/train")
 async def start_training_job():
     """
     Aggregates all batch manifests, creates a master manifest,
@@ -356,7 +356,7 @@ async def start_training_job():
         )
 
 
-@app.post(ENDPOINT_PREFIX + "/fer/model/select")
+@app.post(ENDPOINT_PREFIX + "/fer/models/select")
 async def select_model(model_version: str):
     latest_ver = get_latest_model_version()
     if model_version.lower() == "latest":
@@ -490,3 +490,41 @@ async def select_model(model_version: str):
 
     except ApiException as e:
         raise HTTPException(status_code=500, detail=f"K8s API Error: {e.reason}")
+
+
+@app.get(ENDPOINT_PREFIX + '/fer/models')
+async def get_models():
+    pattern = re.compile(r'^v\d+$')
+    model_dirs = [
+        d for d in MODELS_MOUNT_ROOT.iterdir()
+        if d.is_dir() and pattern.match(d.name)
+    ]
+
+    metadatas = []
+    versions = []
+
+    # 2. Load Metadata for each
+    for d in model_dirs:
+        versions.append(d.name)
+        metadata_path = d / "metadata.json"
+        metadata = None
+
+        if metadata_path.exists():
+            try:
+                async with aiofiles.open(metadata_path, mode='r') as f:
+                    content = await f.read()
+                    metadata = json.loads(content)
+            except Exception as e:
+                print(f"WARN: could not read metadata for {d.name}: {str(e)}")
+
+        metadatas.append({
+            "version": d.name,
+            "metadata": metadata,
+        })
+
+    return {
+        "count": len(metadatas),
+        "versions": versions,
+        "models": metadatas,
+    }
+
