@@ -1,0 +1,9 @@
+data/
+models/
+.venv/
+__pycache__/
+.ruff_cache/
+Dockerfile
+README.md
+docker-compose.yml
+.python-version

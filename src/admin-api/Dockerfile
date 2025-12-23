@@ -6,24 +6,19 @@ ENV UV_PYTHON_CACHE_DIR=/root/.cache/uv/python
 ENV UV_PYTHON_VERSION=3.13
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libsndfile1 \
-    ffmpeg \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app/infer
+WORKDIR /app
 
-COPY common/pyproject.toml /app/common/
-COPY infer/pyproject.toml infer/uv.lock /app/infer/
-
+COPY pyproject.toml /app
+COPY uv.lock /app
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --frozen --no-install-project
 
-COPY common/ /app/common/
-COPY infer/ /app/infer/
+COPY . /app
 
 RUN --mount=type=cache,target=/root/.cache/uv,sharing=locked \
     uv sync --locked
 
-CMD ["/app/infer/.venv/bin/fastapi", "run", "main.py", "--port", "42069", "--host", "0.0.0.0"]
-
+CMD ["/app/.venv/bin/fastapi", "run", "main.py", "--port", "42069", "--host", "0.0.0.0"]
