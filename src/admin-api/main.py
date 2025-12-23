@@ -29,7 +29,7 @@ from job_builder import build_fer_training_job
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 from kubernetes.client.models import V1Deployment, V1DeploymentStatus, V1Job
-from utils.gcs import get_latest_model_version, save_to_cas
+from utils.gcs import check_model_exists, get_latest_model_version, save_to_cas
 from utils.handle_csv import clean_nones, from_csv_or_str, process_batch_manifest
 
 # k8s clients
@@ -298,13 +298,7 @@ async def start_training_job():
     # --- BUILD AND RUN k8s JOB ---
     try:
         print("Building job object...")
-        job_object = build_fer_training_job(
-            mounts={
-                "blundr-fer-models": MODELS_MOUNT_ROOT,
-                "blundr-fer-data": DATA_MOUNT_ROOT,
-            },
-            model_version=model_ver,
-        )
+        job_object = build_fer_training_job(model_ver)
 
         if job_object is None:
             raise HTTPException(
@@ -352,7 +346,7 @@ async def start_training_job():
         # catch-all
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to submit job: {e}",
+            detail=f"Failed to submit job: {str(e)}",
         )
 
 
@@ -378,6 +372,12 @@ async def select_model(model_version: str):
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Invalid version number. Latest: {latest_ver}",
             )
+
+    if not check_model_exists(model_version):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Model not available (directory exists but model file not found)."
+        )
 
     apps_api = get_k8s_apps_client()
     if not apps_api:
@@ -444,11 +444,10 @@ async def select_model(model_version: str):
                     break
 
         if current_env_val == target_model_path:
-            return {
-                "status": "skipped",
-                "message": f"Version v{selected_version} is already active.",
-                "path": current_env_val,
-            }
+            raise HTTPException(
+                status_code=status.HTTP_412_PRECONDITION_FAILED,
+                detail=f"Selected version '{selected_version}' already active."
+            )
 
         patch_body = {
             "spec": {
@@ -497,13 +496,12 @@ async def get_models():
     pattern = re.compile(r'^v\d+$')
     model_dirs = [
         d for d in MODELS_MOUNT_ROOT.iterdir()
-        if d.is_dir() and pattern.match(d.name)
+        if d.is_dir() and pattern.match(d.name) and check_model_exists(d.name)
     ]
 
     metadatas = []
     versions = []
 
-    # 2. Load Metadata for each
     for d in model_dirs:
         versions.append(d.name)
         metadata_path = d / "metadata.json"

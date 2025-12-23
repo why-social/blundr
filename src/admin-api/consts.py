@@ -20,6 +20,17 @@ FER_DEPLOYMENT = {
     "CONTAINER_NAME": "fer",
     "ENV_VAR_NAME": "MODEL_PATH",
     "VOLUME_NAME_KEY": "gcs-fer-model-bucket",
+    "NODEPOOL_NAME": "kiddie-pool",
 }
 
-MODEL_FILENAME = "emotion_model.pt"
+GCS_MODEL_BUCKET_NAME = "blundr-fer-models"
+GCS_DATA_BUCKET_NAME = "blundr-fer-data"
+
+GCS_MOUNTS = {
+    GCS_MODEL_BUCKET_NAME: MODELS_MOUNT_ROOT,
+    GCS_DATA_BUCKET_NAME: DATA_MOUNT_ROOT,
+}
+
+MODEL_FILENAME = "fer_model.pt"
+
+FER_TRAIN_IMAGE = "europe-north2-docker.pkg.dev/blundr/blundr-repo/fer-train:latest"

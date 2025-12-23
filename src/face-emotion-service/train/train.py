@@ -1,5 +1,6 @@
 # Training script: ResNet34 from scratch (no pretrained weights)
 import torch
+import json
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
@@ -19,7 +20,8 @@ LEARNING_RATE = 1e-3
 EPOCHS = 30
 INPUT_SIZE = 128
 
-MODEL_VERSION = os.getenv('MODEL_VERSION', 'default')
+MODEL_VERSION = os.getenv('MODEL_VERSION')
+assert MODEL_VERSION is not None, "Must define MODEL_VERSION"
 
 MODEL_BASE_PATH = os.getenv('MODEL_BASE_PATH', '/models')
 MANIFEST_PATH = f"{MODEL_BASE_PATH}/{MODEL_VERSION}/manifest.csv"
@@ -199,8 +201,24 @@ for epoch in range(EPOCHS):
 		  f"Val Loss: {val_loss/len(val_loader):.4f}, Val Acc: {val_acc:.4f}")
 
 	if val_acc > best_acc:
-		torch.save(model.state_dict(), f'/gce/{MODEL_VERSION}/fer_model.pt')
+		torch.save(model.state_dict(), f'{MODEL_BASE_PATH}/{MODEL_VERSION}/fer_model.pt')
 		best_acc = val_acc
-		print(f"Saved new best model with accuracy: {best_acc:.4f} to /gce/{MODEL_VERSION}/fer_model.pt")
+		print(f"Saved new best model with accuracy: {best_acc:.4f} to {MODEL_BASE_PATH}/{MODEL_VERSION}/fer_model.pt")
 
 print("Training complete. Best validation accuracy:", best_acc)
+
+metadata = {
+	"val_accuracy": best_acc,
+	"hyperparams": {
+		"learning_rate": LEARNING_RATE,
+		"epochs": EPOCHS,
+	},
+	"data": {
+		"val_fraction": VAL_FRACTION,
+		"batch_size": BATCH_SIZE,
+	},
+}
+
+with open(f'{MODEL_BASE_PATH}/{MODEL_VERSION}/metadata.json', 'w') as f:
+	f.write(json.dumps(metadata))
+	

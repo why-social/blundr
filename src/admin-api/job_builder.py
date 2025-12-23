@@ -1,13 +1,18 @@
 import uuid
-from pathlib import Path
-from typing import Dict, List
+from typing import List
 
 from kubernetes import client
 
-NODEPOOL_NAME = "kiddie-pool"
+from consts import (
+    FER_DEPLOYMENT,
+    FER_TRAIN_IMAGE,
+    GCS_DATA_BUCKET_NAME,
+    GCS_MODEL_BUCKET_NAME,
+    GCS_MOUNTS
+)
 
 
-def _build_volumes(buckets) -> List[client.V1Volume]:
+def _build_volumes() -> List[client.V1Volume]:
     return [
         client.V1Volume(
             name=bucket,
@@ -19,21 +24,27 @@ def _build_volumes(buckets) -> List[client.V1Volume]:
                 },
             ),
         )
-        for bucket in buckets
+        for bucket in GCS_MOUNTS.keys()
     ]
 
 
-def _build_container(model_version: str, mounts: Dict[str, Path]) -> client.V1Container:
+def _build_container(model_version: str) -> client.V1Container:
     return client.V1Container(
-        name="fer-trainer",
-        # TODO: use actual training image
-        image="alpine:latest",
+        name="fer-train",
+        image=FER_TRAIN_IMAGE,
         image_pull_policy="Always",
-        command=["cat", f"/models/{model_version}/manifest.csv"],
         env=[
             client.V1EnvVar(
                 name="MODEL_VERSION",
                 value=model_version,
+            ),
+            client.V1EnvVar(
+                name="IMAGE_BASE_PATH",
+                value=GCS_MOUNTS[GCS_DATA_BUCKET_NAME],
+            ),
+            client.V1EnvVar(
+                name="MODEL_BASE_PATH",
+                value=GCS_MOUNTS[GCS_MODEL_BUCKET_NAME],
             ),
         ],
         volume_mounts=[
@@ -41,17 +52,17 @@ def _build_container(model_version: str, mounts: Dict[str, Path]) -> client.V1Co
                 name=name,
                 mount_path=str(path),
             )
-            for name, path in mounts.items()
+            for name, path in GCS_MOUNTS
         ],
     )
 
 
-def build_fer_training_job(mounts: Dict[str, Path], model_version: str) -> client.V1Job:
+def build_fer_training_job(model_version: str) -> client.V1Job:
     """
     Constructs a V1Job object for the training worker.
     """
     job_name = f"fer-training-job-{str(uuid.uuid4())[:6]}"
-    volumes = _build_volumes(mounts.keys())
+    volumes = _build_volumes()
 
     pod_template = client.V1PodTemplateSpec(
         metadata=client.V1ObjectMeta(
@@ -64,7 +75,7 @@ def build_fer_training_job(mounts: Dict[str, Path], model_version: str) -> clien
             restart_policy="Never",
             service_account_name="admin-api-sa",
             node_selector={
-                "cloud.google.com/gke-nodepool": NODEPOOL_NAME,
+                "cloud.google.com/gke-nodepool": FER_DEPLOYMENT['NODEPOOL_NAME'],
             },
             tolerations=[
                 client.V1Toleration(
@@ -75,7 +86,7 @@ def build_fer_training_job(mounts: Dict[str, Path], model_version: str) -> clien
                 )
             ],
             volumes=volumes,
-            containers=[_build_container(model_version, mounts)],
+            containers=[_build_container(model_version)],
         ),
     )
 

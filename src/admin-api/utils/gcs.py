@@ -4,7 +4,7 @@ import re
 from pathlib import Path
 from typing import Dict
 
-from consts import CAS_DIR_NAME, MODELS_MOUNT_ROOT
+from consts import CAS_DIR_NAME, MODEL_FILENAME, MODELS_MOUNT_ROOT
 from fastapi.concurrency import run_in_threadpool
 
 _created_dirs_cache = set()
@@ -31,6 +31,10 @@ def get_latest_model_version() -> int:
                     latest = max(latest, int(match.group(1)))
 
     return latest
+
+def check_model_exists(version: str) -> bool:
+    model_path = MODELS_MOUNT_ROOT/version/MODEL_FILENAME
+    return model_path.exists()
 
 
 def _check_fs_blocking(

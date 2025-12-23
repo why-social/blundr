@@ -4,7 +4,7 @@ set -e  # Exit on any error
 # Usage check
 if [ $# -ne 1 ]; then
   echo "Usage: $0 <service_name>"
-  echo "Available services: fer, ver, aggregator, admin"
+  echo "Available services: fer, ver, aggregator, admin, trainer"
   exit 1
 fi
 
@@ -37,15 +37,24 @@ case "$SERVICE_NAME" in
     SERVICE_NAME="admin-api"
     BUILD_CONTEXT="$PROJECT_ROOT/src/admin-api"
     ;;
+  trainer)
+    SERVICE_NAME="fer-train"
+    BUILD_CONTEXT="$PROJECT_ROOT/src/face-emotion-service"
+    DOCKERFILE="Dockerfile.train"
+    ;;
   *)
-    echo "Error: Unknown service '$SERVICE_NAME'. Valid options: fer, ver, aggregator, admin"
+    echo "Error: Unknown service '$SERVICE_NAME'. Valid options: fer, ver, aggregator, admin, trainer"
     exit 1
     ;;
 esac
 
+: "${DOCKERFILE:=Dockerfile}" # set to default Dockerfile if unset
+
 # Build Docker image
+DOCKER_BUILDKIT=1
 docker buildx build \
   --platform linux/amd64 \
+  -f "$BUILD_CONTEXT/$DOCKERFILE" \
   -t ${KUBE_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:v1 \
   -t ${KUBE_REGION}-docker.pkg.dev/${PROJECT_ID}/${REPO_NAME}/${SERVICE_NAME}:latest \
   "$BUILD_CONTEXT" --push
