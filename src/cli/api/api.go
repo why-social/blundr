@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 func NewClient(url string) *Client {
@@ -98,7 +99,7 @@ func (client *Client) UploadBatch(files []string, manifestPath string, manifestS
 }
 
 func (client *Client) StartTraining() (*StartTrainingResponse, error) {
-	req, err := http.NewRequest("POST", client.BaseURL+"/fer/model/train", nil)
+	req, err := http.NewRequest("POST", client.BaseURL+"/fer/models/train", nil)
 	if err != nil {
 		return nil, err
 	}
@@ -108,6 +109,15 @@ func (client *Client) StartTraining() (*StartTrainingResponse, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf(
+			"training request failed (status %d): %s",
+			resp.StatusCode,
+			strings.TrimSpace(string(body)),
+		)
+	}
 
 	var trainingResp StartTrainingResponse
 	if err := json.NewDecoder(resp.Body).Decode(&trainingResp); err != nil {

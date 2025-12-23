@@ -39,7 +39,7 @@ func RunWithLoadingAnimation[T any](message string, function func() (T, error)) 
 	done := make(chan struct{})
 
 	go func() {
-		frames := []string{".  ", ".. ", "..."}
+		frames := []string{"⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"}
 
 		for {
 			// loop until done signal is received
@@ -48,13 +48,13 @@ func RunWithLoadingAnimation[T any](message string, function func() (T, error)) 
 				case <-done:
 					return
 				default:
-					fmt.Printf("\r%s%s", message, frame)
+					fmt.Printf("\r%s %s", frame, message)
 				}
 
 				select {
 				case <-done:
 					return
-				case <-time.After(500 * time.Millisecond):
+				case <-time.After(200 * time.Millisecond):
 				}
 			}
 		}

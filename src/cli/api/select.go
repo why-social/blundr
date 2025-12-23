@@ -34,20 +34,10 @@ func SelectModelNonInteractive(client *Client, model string) error {
 		},
 	)
 	if err != nil {
-		return fmt.Errorf("API request failed: %w", err)
+		return fmt.Errorf("%w", err)
 	}
 
 	fmt.Println("\n--- Model Selection Result ---")
-
-	var statusStr string
-	if err := json.Unmarshal(response.Status, &statusStr); err == nil && statusStr == "skipped" {
-		if response.Message != "" {
-			fmt.Println(response.Message)
-		} else {
-			fmt.Println("Model is already active.")
-		}
-		return nil
-	}
 
 	if response.NewModel == nil {
 		return fmt.Errorf("unexpected response from API (missing new_model)")
