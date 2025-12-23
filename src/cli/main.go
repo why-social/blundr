@@ -42,12 +42,12 @@ func main() {
 
 	client := api.NewClient(adminAPIUrl)
 	if len(args) == 0 {
-		utils.SwitchScreenBuffer()
+		utils.SwitchToAlternateScreen()
 
 		fmt.Println("Google Cloud authentication and project access verified.")
 		loopOptions(client)
 
-		utils.RestoreScreenBuffer()
+		utils.RestoreScreen()
 	} else {
 		fmt.Println("Google Cloud authentication and project access verified.")
 		parseCommand(client, args)
@@ -62,7 +62,7 @@ func loopOptions(client *api.Client) {
 		fmt.Printf(`
 Select an action (F.E.R. Service):
 
-1) Get existing models
+1) List existing models
 2) Upload new data batch
 3) Train a new model
 4) Change active model

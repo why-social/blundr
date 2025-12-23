@@ -26,12 +26,12 @@ func ClearScreen() {
 	fmt.Print("\033[H\033[2J")
 }
 
-func SwitchScreenBuffer() {
+func SwitchToAlternateScreen() {
 	fmt.Print("\033[?1049h")
-	fmt.Print("\033[H")
+	ClearScreen()
 }
 
-func RestoreScreenBuffer() {
+func RestoreScreen() {
 	fmt.Print("\033[?1049l")
 }
 
@@ -46,19 +46,29 @@ func RunWithLoadingAnimation[T any](message string, function func() (T, error)) 
 			for _, frame := range frames {
 				select {
 				case <-done:
-					fmt.Print("\r")
-
 					return
 				default:
 					fmt.Printf("\r%s%s", message, frame)
-					time.Sleep(500 * time.Millisecond)
+				}
+
+				select {
+				case <-done:
+					return
+				case <-time.After(500 * time.Millisecond):
 				}
 			}
 		}
 	}()
 
 	// blocking
-	result, err := function()
+	wrappedFunction := func() (T, error) {
+		result, err := function()
+		fmt.Print("\r\033[2K")
+
+		return result, err
+	}
+
+	result, err := wrappedFunction()
 	close(done)
 
 	return result, err
