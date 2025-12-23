@@ -54,18 +54,14 @@ def _check_fs_blocking(
     abs_path = shard_absolute / final_name
     rel_path = Path(CAS_DIR_NAME) / shard_relative / final_name
 
-    if not abs_path.exists():
+    exists = abs_path.exists()
+
+    if not exists:
         with open(abs_path, "wb") as f:
             f.write(content)
 
-        return {
-            "exists": False,
-            "path": str(rel_path),
-            "hash": file_hash,
-        }
-
     return {
-        "exists": True,
+        "exists": exists,
         "path": str(rel_path),
         "hash": file_hash,
     }
