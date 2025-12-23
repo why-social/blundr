@@ -1,16 +1,16 @@
 # Training script: ResNet34 from scratch (no pretrained weights)
+import csv
+import hashlib
+import os
+
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms
-from torch.amp import autocast
-from torch.utils.data import DataLoader, random_split, Dataset
-from torchvision import datasets, models
-from tqdm import tqdm
-import os
-import csv
 from PIL import Image
-import hashlib
+from torch.utils.data import DataLoader, Dataset, random_split
+from torchvision import models
+from tqdm import tqdm
 
 VAL_FRACTION = 0.2
 BATCH_SIZE = 16
