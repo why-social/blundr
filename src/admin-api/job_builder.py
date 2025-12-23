@@ -1,15 +1,14 @@
 import uuid
 from typing import List
 
-from kubernetes import client
-
 from consts import (
     FER_DEPLOYMENT,
     FER_TRAIN_IMAGE,
     GCS_DATA_BUCKET_NAME,
     GCS_MODEL_BUCKET_NAME,
-    GCS_MOUNTS
+    GCS_MOUNTS,
 )
+from kubernetes import client
 
 
 def _build_volumes() -> List[client.V1Volume]:

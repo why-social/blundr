@@ -10,7 +10,6 @@ import pandas as pd
 from consts import (
     BATCH_ROOT,
     CAS_ROOT,
-    DATA_MOUNT_ROOT,
     ENDPOINT_PREFIX,
     FER_DEPLOYMENT,
     MODEL_FILENAME,
@@ -376,7 +375,7 @@ async def select_model(model_version: str):
     if not check_model_exists(model_version):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Model not available (directory exists but model file not found)."
+            detail="Model not available (directory exists but model file not found)."
         )
 
     apps_api = get_k8s_apps_client()
