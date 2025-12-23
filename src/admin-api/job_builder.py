@@ -40,11 +40,11 @@ def _build_container(model_version: str) -> client.V1Container:
             ),
             client.V1EnvVar(
                 name="IMAGE_BASE_PATH",
-                value=GCS_MOUNTS[GCS_DATA_BUCKET_NAME],
+                value=str(GCS_MOUNTS[GCS_DATA_BUCKET_NAME]),
             ),
             client.V1EnvVar(
                 name="MODEL_BASE_PATH",
-                value=GCS_MOUNTS[GCS_MODEL_BUCKET_NAME],
+                value=str(GCS_MOUNTS[GCS_MODEL_BUCKET_NAME]),
             ),
         ],
         volume_mounts=[
