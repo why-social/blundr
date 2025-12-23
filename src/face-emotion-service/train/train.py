@@ -37,7 +37,7 @@ class ManifestDataset(Dataset):
 			rows = list(csv.DictReader(f))
 
 		labels = sorted({r["label"] for r in rows})
-		self.class_to_idx = {l: i for i, l in enumerate(labels)}
+		self.class_to_idx = {label: i for i, label in enumerate(labels)}
 
 		self.samples = []
 		base_path = os.getenv("IMAGE_BASE_PATH", "/data")
