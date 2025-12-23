@@ -1,5 +1,5 @@
-import clsx from "clsx";
 import * as React from "react";
+import { twMerge } from "tailwind-merge";
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "ghost" | "danger";
 type ButtonSize = "sm" | "md" | "lg";
@@ -8,6 +8,7 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
   leftIcon?: React.ReactNode;
+  blurryBorder?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -16,6 +17,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       className,
       variant = "primary",
       size = "md",
+      blurryBorder = false,
       leftIcon,
       children,
       ...props
@@ -35,29 +37,34 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     };
 
     const sizes: Record<ButtonSize, string> = {
-      sm: "h-8 px-3 text-xs",
-      md: "h-10 px-4 text-sm",
-      lg: "h-12 px-8 text-base",
+      sm: "h-8 px-4 text-sm",
+      md: "h-12 px-5 text-md",
+      lg: "h-14 px-8 text-lg",
     };
 
     return (
-      <button
-        ref={ref}
-        className={clsx(
-          "inline-flex items-center justify-center rounded-md font-medium ring-offset-white transition-all",
-          "duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]",
-          "hover:cursor-pointer disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-zinc-950",
-          variants[variant],
-          sizes[size],
-          className,
+      <>
+        {blurryBorder && (
+          <div className="pointer-events-none absolute -inset-0.5 rounded-md bg-linear-to-r from-pink-600 via-fuchsia-400 to-red-400 blur-md" />
         )}
-        {...props}
-      >
-        {leftIcon && (
-          <span className="mr-2 inline-flex shrink-0">{leftIcon}</span>
-        )}
-        {children}
-      </button>
+        <button
+          ref={ref}
+          className={twMerge(
+            "inline-flex items-center justify-center rounded-md font-medium ring-offset-white transition-all",
+            "duration-200 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.98]",
+            "relative hover:cursor-pointer disabled:pointer-events-none disabled:opacity-50 dark:ring-offset-zinc-950",
+            variants[variant],
+            sizes[size],
+            className,
+          )}
+          {...props}
+        >
+          {leftIcon && (
+            <span className="mr-2 inline-flex shrink-0">{leftIcon}</span>
+          )}
+          {children}
+        </button>
+      </>
     );
   },
 );

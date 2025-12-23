@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import CallControls from "@/app/components/CallControls";
-import Video from "@/app/components/Video";
+import CallControls from "@/app/components/chat/CallControls";
 import { Button } from "../components/Button";
 
 import { checkMediaPermissions } from "./useMediaPermissions";
 import { useMediaSoup } from "./useMediasoup";
 import { useNavigationBlock } from "./useNavigationBlock";
+import CallVideo from "../components/chat/CallVideo";
+import { twMerge } from "tailwind-merge";
+import { EmphasisText } from "../components/EmphasisText";
+import { ErrorDialog } from "../components/ErrorDialog";
 
 export default function Chat() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -23,9 +26,11 @@ export default function Chat() {
     setup,
     isQueuing,
     sessionId: sessionIdRef,
+    clientId: clientIdRef,
+    error: mediasoupError,
   } = useMediaSoup(localVideoRef, remoteVideoRef, () => {
-    if (sessionIdRef.current && !isQueuing) {
-      replaceUrl(`/analyze/${sessionIdRef.current}`);
+    if (clientIdRef.current && sessionIdRef.current && !isQueuing) {
+      replaceUrl(`/analysis/${sessionIdRef.current}/${clientIdRef.current}`);
     } else {
       replaceUrl("/");
     }
@@ -65,20 +70,39 @@ export default function Chat() {
   }, [setup]);
 
   return (
-    <div className="p-5">
-      <CallControls
+    <div className="relative min-h-screen w-full p-5 before:absolute before:top-5 before:right-5 before:bottom-5 before:left-5 before:bg-gray-950 before:[clip-path:inset(0_round_1.5rem)] md:before:[clip-path:inset(0_round_2rem)]">
+      <CallVideo
         ref={localVideoRef}
+        showSpinner={true}
+        muted={true}
+        className={twMerge(
+          "absolute top-5 right-5 bottom-5 left-5 origin-top-right bg-gray-950 transition-transform duration-1000 ease-in-out",
+          !isQueuing && "z-20 -translate-x-5 translate-y-5 scale-[0.26]",
+        )}
+      />
+
+      <CallControls
+        ref={remoteVideoRef}
+        muted={false}
         pending={isQueuing}
+        className={"absolute top-5 right-5 bottom-5 left-5"}
         onEndCall={() => {
-          if (sessionIdRef.current && !isQueuing) {
-            replaceUrl(`/analyze/${sessionIdRef.current}`);
+          if (clientIdRef.current && sessionIdRef.current && !isQueuing) {
+            replaceUrl(
+              `/analysis/${sessionIdRef.current}/${clientIdRef.current}`,
+            );
           } else {
             replaceUrl("/");
           }
         }}
       />
 
-      <Video ref={remoteVideoRef} />
+      {isQueuing && (
+        <EmphasisText
+          className="absolute inset-x-9 top-8 animate-pulse text-2xl font-black text-white italic text-shadow-[#00000035] text-shadow-lg"
+          text="Waiting for a match..."
+        />
+      )}
 
       {showDialog && (
         <LeaveDialog
@@ -87,9 +111,9 @@ export default function Chat() {
         />
       )}
 
-      {permissionError && (
+      {(permissionError || mediasoupError) && (
         <ErrorDialog
-          message={permissionError}
+          message={permissionError ?? mediasoupError}
           onReturn={() => replaceUrl("/")}
         />
       )}
@@ -118,21 +142,6 @@ function LeaveDialog({
           </Button>
         </div>
       </div>
-    </div>
-  );
-}
-
-function ErrorDialog({
-  message,
-  onReturn,
-}: {
-  message: string;
-  onReturn: () => void;
-}) {
-  return (
-    <div className="fixed top-0 left-0 z-50 flex h-full w-full flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
-      <p className="mb-4">{message}</p>
-      <Button onClick={onReturn}>Return Home</Button>
     </div>
   );
 }
