@@ -52,7 +52,7 @@ def _build_container(model_version: str) -> client.V1Container:
                 name=name,
                 mount_path=str(path),
             )
-            for name, path in GCS_MOUNTS
+            for name, path in GCS_MOUNTS.items()
         ],
     )
 
