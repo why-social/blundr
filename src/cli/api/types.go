@@ -1,7 +1,8 @@
 package api
 
 import (
-	appsv1 "k8s.io/api/apps/v1"
+	"encoding/json"
+
 	batchv1 "k8s.io/api/batch/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
@@ -38,11 +39,13 @@ type StartTrainingResponse struct {
 }
 
 type SelectModelResponse struct {
-	Status   appsv1.DeploymentStatus `json:"status"`
-	NewModel struct {
+	Status   json.RawMessage `json:"status"`
+	Message  string          `json:"message,omitempty"`
+	Path     string          `json:"path,omitempty"`
+	NewModel *struct {
 		Version string `json:"version"`
 		Path    string `json:"path"`
-	} `json:"new_model"`
+	} `json:"new_model,omitempty"`
 }
 
 type ModelMetadata struct {

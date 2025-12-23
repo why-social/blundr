@@ -3,9 +3,11 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 )
@@ -116,20 +118,34 @@ func (client *Client) StartTraining() (*StartTrainingResponse, error) {
 }
 
 func (client *Client) SelectModel(version string) (*SelectModelResponse, error) {
-	payload := map[string]string{"model_version": version}
-	body, _ := json.Marshal(payload)
-
-	req, err := http.NewRequest("POST", client.BaseURL+"/fer/model/select", bytes.NewBuffer(body))
+	req, err := http.NewRequest(
+		"POST",
+		client.BaseURL+"/fer/models/select?model_version="+url.QueryEscape(version),
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.HTTPClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var apiErr struct {
+			Detail string `json:"detail"`
+		}
+
+		_ = json.NewDecoder(resp.Body).Decode(&apiErr)
+
+		if apiErr.Detail != "" {
+			return nil, fmt.Errorf("%s", apiErr.Detail)
+		}
+
+		return nil, fmt.Errorf("API error: %s", resp.Status)
+	}
 
 	var selectResp SelectModelResponse
 	if err := json.NewDecoder(resp.Body).Decode(&selectResp); err != nil {
