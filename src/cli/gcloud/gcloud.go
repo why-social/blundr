@@ -76,12 +76,7 @@ func checkCredentials(context context.Context) bool {
 	_, err := storage.NewClient(context)
 
 	if err != nil {
-		fmt.Printf(`
-Google Cloud credentials are present, but unusable.
-
-Error:
-%s
-`, err)
+		fmt.Println("Google Cloud credentials are present, but unusable.")
 
 		return false
 	}
@@ -89,12 +84,27 @@ Error:
 	return true
 }
 
-func EnsureGCloudAccess(context context.Context, projectId string) bool {
+func EnsureGCloudAccess(context context.Context,
+	projectId string, allowInteractive bool) bool {
+
 	if !checkInstallation() {
 		return false
 	}
 
 	if !checkCredentials(context) || !checkLogin() {
+		if !allowInteractive {
+			fmt.Print(`
+Google Cloud login is required, but interactive mode is disabled.
+
+Please ensure that your credentials are already configured by
+running 'gcloud auth application-default login' manually.
+
+Non-interactive commands cannot log in automatically.
+`)
+
+			return false
+		}
+
 		if !utils.PromptYesOrNo("Google Cloud login required. Do you want to log in now? (y/n): ") {
 			fmt.Println("Login required to continue.")
 
@@ -129,8 +139,6 @@ You do not have access to the Google Cloud project "%s".
 	if !checkCredentials(context) {
 		return false
 	}
-
-	fmt.Println("Google Cloud authentication and project access verified.")
 
 	return true
 }
