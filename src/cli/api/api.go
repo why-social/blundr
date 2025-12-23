@@ -138,3 +138,27 @@ func (client *Client) SelectModel(version string) (*SelectModelResponse, error) 
 
 	return &selectResp, nil
 }
+
+func (client *Client) GetModels() (*GetModelsResponse, error) {
+	req, err := http.NewRequest(
+		"GET",
+		client.BaseURL+"/fer/models",
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := client.HTTPClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var modelsResp GetModelsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&modelsResp); err != nil {
+		return nil, err
+	}
+
+	return &modelsResp, nil
+}

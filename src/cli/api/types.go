@@ -44,3 +44,20 @@ type SelectModelResponse struct {
 		Path    string `json:"path"`
 	} `json:"new_model"`
 }
+
+type ModelMetadata struct {
+	BatchID           string         `json:"batch_id"`
+	Count             int            `json:"count"`
+	LabelDistribution map[string]int `json:"label_distribution"`
+}
+
+type ModelInfo struct {
+	Version  string         `json:"version"`
+	Metadata *ModelMetadata `json:"metadata"` // nullable
+}
+
+type GetModelsResponse struct {
+	Count    int         `json:"count"`
+	Versions []string    `json:"versions"`
+	Models   []ModelInfo `json:"models"`
+}
