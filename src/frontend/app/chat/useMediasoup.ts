@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import { Device } from "mediasoup-client";
 import { AppData, Transport } from "mediasoup-client/types";

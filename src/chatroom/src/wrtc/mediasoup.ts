@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 import { Server } from "http";
 import { createWorker } from "mediasoup";
 import { init as initMatcher } from "./roomMatcher.js";

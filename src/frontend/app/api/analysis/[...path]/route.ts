@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 import { NextRequest } from "next/server";
 import { Context, proxy } from "@/app/api/proxy";
 

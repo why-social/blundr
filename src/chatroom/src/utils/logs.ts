@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 const COLORS = {
   reset: "\x1b[0m",
   red: "\x1b[31m",

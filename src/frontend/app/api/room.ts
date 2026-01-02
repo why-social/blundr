@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 export type WSHandler = {
   onConnected: (clientId: string) => Promise<void>;
   onMatch: (clientId: string, sessionId: string) => Promise<void>;

@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 

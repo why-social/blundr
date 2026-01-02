@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 import { DM_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import "./globals.css";

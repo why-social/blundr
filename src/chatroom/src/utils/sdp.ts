@@ -1,3 +1,7 @@
+// Original Author: Razvan Albu
+// Source: https://git.chalmers.se/courses/dit826/2025/team2
+// License: MIT
+
 import { Consumer, MediaKind, RtpParameters } from "mediasoup/types";
 
 // based on https://github.com/ethand91/mediasoup3-record-demo/blob/180973063f1aecdc02b91d8e909f21ceb40ce53b/server/src/sdp.js#L4
