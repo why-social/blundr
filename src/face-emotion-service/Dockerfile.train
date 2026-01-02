@@ -6,6 +6,8 @@ COPY requirements_train.txt .
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements_train.txt
 
 COPY ./train/train.py .
+COPY ./tests/* .
+COPY process_video.py .
 
 EXPOSE 42069
 
