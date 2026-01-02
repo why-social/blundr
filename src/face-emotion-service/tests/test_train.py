@@ -1,3 +1,6 @@
+# Original Author: Danis Music
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
 import csv
 from unittest.mock import MagicMock, patch
 

@@ -1,3 +1,6 @@
+# Original Author: Danis Music
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
 import time
 from pathlib import Path
 from typing import Dict

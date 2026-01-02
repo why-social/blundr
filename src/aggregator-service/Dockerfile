@@ -1,3 +1,6 @@
+# Original Author: Danis Music
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
 FROM python:3.11-slim
 
 WORKDIR /src/aggregator-service
