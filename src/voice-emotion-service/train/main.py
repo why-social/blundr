@@ -1,3 +1,7 @@
+# Original Author: Maxine Orlen
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
+
 import torch
 from common.config.dataset_config import AugmentsConfig, DatasetConfig
 from common.config.model_config import ModelConfig

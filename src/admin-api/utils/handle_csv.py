@@ -1,3 +1,7 @@
+# Original Author: Maxine Orlen
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
+
 from io import StringIO
 from pathlib import Path
 from typing import Optional

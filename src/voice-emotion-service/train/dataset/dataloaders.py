@@ -1,3 +1,7 @@
+# Original Author: Maxine Orlen
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
+
 from common.config.dataset_config import AugmentsConfig
 from common.config.model_config import ModelConfig
 from dataset.spec_dataset import SpecDataset
