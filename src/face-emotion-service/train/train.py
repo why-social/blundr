@@ -14,8 +14,6 @@ from torchvision import models
 from tqdm import tqdm
 
 VAL_FRACTION = 0.2
-BATCH_SIZE = 16
-WORKERS_NUM = 4
 LEARNING_RATE = 1e-3
 EPOCHS = 30
 INPUT_SIZE = 128
@@ -40,6 +38,42 @@ assert MODEL_VERSION is not None, "Must define MODEL_VERSION"
 
 MODEL_BASE_PATH = os.getenv('MODEL_BASE_PATH', '/models')
 MANIFEST_PATH = f"{MODEL_BASE_PATH}/{MODEL_VERSION}/manifest.csv"
+
+
+def _get_cores_num():
+	try:
+		num_cores = len(os.sched_getaffinity(0))
+	except AttributeError:
+		num_cores = os.cpu_count()
+
+	if not num_cores:
+		num_cores = 4
+		print("WARN: Could not determine core count. Assuming 4.")
+	
+	return num_cores
+
+def get_workers_num():
+	num_cores = _get_cores_num()
+	num_workers = num_cores - 2 if num_cores > 2 else 2
+	print(f"Using {num_workers} workers.")
+	return num_workers
+
+def get_batch_size():
+	num_cores = _get_cores_num()
+
+	if num_cores >= 32:
+		optimal_bs = 64
+	elif num_cores >= 16:
+		optimal_bs = 32
+	else:
+		optimal_bs = 16
+		
+	print(f"Selected CPU batch size: {optimal_bs} ({num_cores} cores)")
+	return optimal_bs
+
+
+BATCH_SIZE = get_batch_size()
+WORKERS_NUM = get_workers_num()
 
 # Dataset definition
 class ManifestDataset(Dataset):
@@ -215,12 +249,12 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, scheduler
 	return best_acc
 
 if __name__ == "__main__":
-
 	# Split dataset into training and validation data
 	train_dataset, val_dataset, dataset = split_manifest_dataset(MANIFEST_PATH)
 	num_classes = len(dataset.class_to_idx)
 
 	# Create data loaders
+	print("creating dataloaders...")
 	train_loader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=WORKERS_NUM, persistent_workers=True)
 	val_loader = DataLoader(val_dataset, batch_size=BATCH_SIZE, shuffle=False, num_workers=WORKERS_NUM, persistent_workers=True)
 
@@ -228,14 +262,25 @@ if __name__ == "__main__":
 	device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 	model = initialize_model(num_classes, device)
 
-	# Count samples per class
-	class_weights = compute_class_weights(dataset.samples, num_classes, device)
+	# compile model to enable hardware optimizations
+	if device.type == 'cpu':
+		try:
+			print("Compiling model (torch.compile)...")
+			model = torch.compile(model)
+		except Exception as e:
+			print(f"Could not compile model. Running standard mode. Error: {e}")
 
+	# Count samples per class
+	print("computing class weights...")
+	class_weights = compute_class_weights(dataset.samples, num_classes, device)
+	print(f"  class weights: {class_weights}")
+
+	print("setting up training...")
 	criterion, optimizer, scheduler = setup_training(model, class_weights, learning_rate=LEARNING_RATE, epochs=EPOCHS, train_loader=train_loader)
 
+	print("starting training...")
 	best_acc = train_model(model, train_loader, val_loader, criterion, optimizer, scheduler, device)
-
-	print("Training complete. Best validation accuracy:", best_acc)
+	print(f"Training complete. Best validation accuracy: {best_acc:.4f}")
 
 	metadata = {
 		"val_accuracy": best_acc,

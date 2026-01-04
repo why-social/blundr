@@ -92,7 +92,16 @@ func (client *Client) UploadBatch(files []string, manifestPath string, manifestS
 	if err != nil {
 		return nil, err
 	}
+
 	defer resp.Body.Close()
+	if resp.StatusCode != 201 {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf(
+			"upload request failed (status %d): %s",
+			resp.StatusCode,
+			strings.TrimSpace(string(body)),
+		)
+	}
 
 	var uploadResp UploadBatchResponse
 	if err := json.NewDecoder(resp.Body).Decode(&uploadResp); err != nil {
