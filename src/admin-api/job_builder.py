@@ -12,7 +12,8 @@ from kubernetes import client
 
 
 def _build_volumes() -> List[client.V1Volume]:
-    return [
+    # Bucket mounts
+    volumes = [
         client.V1Volume(
             name=bucket,
             csi=client.V1CSIVolumeSource(
@@ -26,8 +27,29 @@ def _build_volumes() -> List[client.V1Volume]:
         for bucket in GCS_MOUNTS.keys()
     ]
 
+    # shared memory
+    volumes.append(client.V1Volume(
+        name="dshm",
+        empty_dir=client.V1EmptyDirVolumeSource(medium="Memory")
+    ))
+
+    return volumes
+
 
 def _build_container(model_version: str) -> client.V1Container:
+    volume_mounts = [
+        client.V1VolumeMount(
+            name=name,
+            mount_path=str(path),
+        )
+        for name, path in GCS_MOUNTS.items()
+    ]
+
+    volume_mounts.append(client.V1VolumeMount(
+        name="dshm",
+        mount_path="/dev/shm"
+    ))
+
     return client.V1Container(
         name="fer-train",
         image=FER_TRAIN_IMAGE,
@@ -46,13 +68,11 @@ def _build_container(model_version: str) -> client.V1Container:
                 value=str(GCS_MOUNTS[GCS_MODEL_BUCKET_NAME]),
             ),
         ],
-        volume_mounts=[
-            client.V1VolumeMount(
-                name=name,
-                mount_path=str(path),
-            )
-            for name, path in GCS_MOUNTS.items()
-        ],
+        volume_mounts=volume_mounts,
+        resources=client.V1ResourceRequirements(
+            requests={"cpu": "10", "memory": "18Gi"}, # slightly less than node max
+            limits={"cpu": "12", "memory": "20Gi"} # node maximum
+        ),
     )
 
 
