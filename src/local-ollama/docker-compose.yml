@@ -6,6 +6,10 @@ services:
     privileged: true
     volumes:
       - ${HOME}/.ollama:/root/.ollama:z
+    environment:
+      - OLLAMA_KEEP_ALIVE=-1
+      - OLLAMA_MAX_LOADED_MODELS=1
+      - OLLAMA_NUM_PARALLEL=3
     network_mode: host
     deploy:
       resources:

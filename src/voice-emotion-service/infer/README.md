@@ -8,6 +8,8 @@ transcript.
 
 Currently, we use a CNN, which has an important implication of fixed input sizes
 that are enforced at training time.
+
+First, a transcript of the audio is created.
 The audio file is split into *sentences* using timestamps from the transcript.
 If a *sentence* is longer than the input size, it is split into *chunks* padded 
 with equal amounts of silence (to avoid mostly silent chunks at ends of sentences).
@@ -21,7 +23,7 @@ with equal amounts of silence (to avoid mostly silent chunks at ends of sentence
 
 ## API
 
-`POST /infer`
+`POST /voice-emotion/infer`
 
 ### Request
 
@@ -31,22 +33,39 @@ with equal amounts of silence (to avoid mostly silent chunks at ends of sentence
 
 `audio`: the audio file to analyse
 
-`transcript`: the transcript from the transcription service, as a stringified csv
 
-- expected format: `timestamp_start,timestamp_end,sentence\n...`
-    - *the transcription service output contains more columnts, but these are the only ones used*
-- the input is expected to have no empty entries (no empty sentences/silences)
+### Response
 
-### Request
+The endpoint creates a background job and immediately returns it's status:
+```
+200 OK
+{
+    "status": "accepted" | "error",
+    "message": null or <str>,
+}
+```
 
-The endpoint returns the transcript with added columns `label` and `confidence`:
+The 'actual' response is sent to downstream (to the aggregator) when the job 
+is finished.
+The response is the transcript with added columns `label` and `confidence`:
 
-`session_id`: self-explanatory
+`session_id`: the id of the chat
 
-`user_id`: self-explanatory
+`uuid`: the id of the user
 
-`predictions`: labels for each sentence from the transcript
+`ve_text`: the response object as a CSV string
 
-- format: `timestamp_start,timestamp_end,sentence,label,confidence\n...`
-    - the columns are self-explanatory :)
+_where the response object contains:_
+```
+[
+    {
+        "timestamp_start": <str (float)>,
+        "timestamp_end": <str (float)>,
+        "sentence": <str>,
+        "label": <str (one of the emotions)>,
+        "confidence": <float>,
+    },
+    ..., for each sentence or silence
+]
+```
 
