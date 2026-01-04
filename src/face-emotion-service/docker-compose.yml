@@ -5,22 +5,32 @@ services:
     volumes:
       - ./models:/models:ro
     environment:
-      - MODEL_PATH=/models/emotion_model.pt
+      - MODEL_PATH=/models/v1/fer_model.pt
     ports:
       - 42069:42069
     profiles:
       - serve
+
   fer-train:
     image: fer-train
     build:
       context: .
       dockerfile: Dockerfile.train
     volumes:
-      - ./models:/models
-      - ./testDockerizedTraining/data:/data
-      - ./testDockerizedTraining/gce/v1:/gce/v1
+      # !!! mount actual data and models directories that mimic the GCS setup to test
+      - ./test_mounts/models:/models:z
+      - ./test_mounts/data:/data:z
     environment:
-      - MODEL_VERSION=v1
+      - MODEL_VERSION=v2
+      - MODEL_BASE_PATH=/models
       - IMAGE_BASE_PATH=/data
     profiles:
       - train
+    privileged: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]

@@ -1,0 +1,11 @@
+{
+    "val_accuracy": 0.7488,
+    "hyperparams": {
+        "learning_rate": 0.001,
+        "epochs": 30
+    },
+    "data": {
+        "val_fraction": 0.8,
+        "batch_size": 16
+    }
+}
