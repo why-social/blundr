@@ -15,6 +15,11 @@ Updating the VER model in the deployment must be done manually:
 1. Upload the new model to the GCS bucket `blundr-ver-models` as `model.pth`
 NOTE: follow a convention of `/models/vX/model.pth` for the path.
 
+Example via `gsutil`:
+```bash
+gsutil -m cp -r ./models/v2 gs://blundr-fer-models/v2
+```
+
 2. Run `kubectl set env deployment/ver MODEL_PATH=<PATH>`
 , where `<PATH>` is the full path to the .pth file in the bucket.
 
