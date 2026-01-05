@@ -1,3 +1,6 @@
+# Original Author: Aliaksei Khval
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
