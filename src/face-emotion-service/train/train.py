@@ -1,3 +1,8 @@
+# Original Author: Aliaksei Khval
+# Co-authored by: Danis Music, Maxine Orlen
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
+
 # Training script: ResNet34 from scratch (no pretrained weights)
 import csv
 import hashlib

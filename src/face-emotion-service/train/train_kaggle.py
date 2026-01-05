@@ -1,3 +1,7 @@
+# Original Author: Aliaksei Khval
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
+
 # Training script: ResNet34 from scratch (no pretrained weights)
 import torch
 import torch.nn as nn
