@@ -1,3 +1,7 @@
+# Original Author: Aliaksei Khval
+# Source: https://git.chalmers.se/courses/dit826/2025/team2
+# License: MIT
+
 # This training script is configured to run in kaggle.com notebook
 
 import torch
