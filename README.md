@@ -1,12 +1,12 @@
 # Blundr
 
-[![GitLab Wiki Badge](https://img.shields.io/badge/GitLab-Wiki-d94a34.svg?logo=gitlab)](https://git.chalmers.se/courses/dit826/2025/team2/-/wikis) [![Frontend Deployment Badge](https://img.shields.io/website?url=https%3A//blundr.razvanalbu.com&logo=nextdotjs&label=Frontend%20Deployment&logoColor=white&cacheSeconds=3600)](https://blundr.razvanalbu.com)
+[![GitLab Wiki Badge](https://img.shields.io/badge/GitLab-Wiki-d94a34.svg?logo=gitlab)](https://git.chalmers.se/orlovs/blundr/-/wikis) [![Frontend Deployment Badge](https://img.shields.io/website?url=https%3A//blundr.razvanalbu.com&logo=nextdotjs&label=Frontend%20Deployment&logoColor=white&cacheSeconds=3600)](https://blundr.razvanalbu.com)
 
 ![Blundr Screenshot](./public/blundr.png)
 
 **Blundr** is an AI-driven dating-coach system designed to help users improve their communication and interpersonal skills through simulated dating interactions. Users are matched randomly and engage in live video calls that the system performs emotion, speech, and transcription analysis on. After each session, a Large Language Model evaluates key conversational moments, rated with a [chess.com](https://www.chess.com) style scale and provides targeted feedback.
 
-> Detailed project documentation, including Requirements and Architecture Design, can be found on our [Project Wiki](https://git.chalmers.se/courses/dit826/2025/team2/-/wikis).
+> Detailed project documentation, including Requirements and Architecture Design, can be found on our [Project Wiki](https://git.chalmers.se/orlovs/blundr/-/wikis).
 
 ### Live Access
 
@@ -21,7 +21,7 @@ Blundr is built as a distributed microservices ecosystem to handle concurrent, r
 - _Transcription_: Audio is processed via Whisper Large v3 to generate timestamped text.
 - _Aggregation & Evaluation_: The Aggregator Service syncs transcripts with emotional data, which is then evaluated by an LLM (via Ollama).
 
-_Detailed component diagram is available in the [Architecture section of the Wiki](https://git.chalmers.se/courses/dit826/2025/team2/-/wikis/architecture)._
+_Detailed component diagram is available in the [Architecture section of the Wiki](https://git.chalmers.se/orlovs/blundr/-/wikis/architecture)._
 
 ### Project Structure & Components
 
